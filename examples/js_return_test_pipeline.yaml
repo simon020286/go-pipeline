@@ -1,0 +1,137 @@
+name: "js-return-test-pipeline"
+description: "Pipeline per testare che il return funzioni correttamente nello step JS"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Test 1: Return semplice
+  - id: "simple-return"
+    step_type: "js"
+    step_config:
+      code: |
+        return { message: "Hello from JavaScript!" };
+    dependencies:
+      - "trigger"
+
+  # Test 2: Return con calcoli
+  - id: "calculated-return"
+    step_type: "js"
+    step_config:
+      code: |
+        const x = 10;
+        const y = 20;
+        return { sum: x + y, product: x * y };
+    dependencies:
+      - "trigger"
+
+  # Test 3: Return con context
+  - id: "context-return"
+    step_type: "js"
+    step_config:
+      code: |
+        const simple = ctx['simple-return'];
+        const calc = ctx['calculated-return'];
+        return {
+          message: simple.message,
+          sum: calc.sum,
+          combined: simple.message + " Sum is: " + calc.sum
+        };
+    dependencies:
+      - "simple-return"
+      - "calculated-return"
+
+  # Test 4: Return con array
+  - id: "array-return"
+    step_type: "js"
+    step_config:
+      code: |
+        const numbers = [1, 2, 3, 4, 5];
+        const doubled = numbers.map(n => n * 2);
+        return { original: numbers, doubled: doubled };
+    dependencies:
+      - "trigger"
+
+  # Test 5: Return con funzioni
+  - id: "function-return"
+    step_type: "js"
+    step_config:
+      code: |
+        function calculateDiscount(price, percentage) {
+          return price * (1 - percentage / 100);
+        }
+
+        const price = 100;
+        const discount = 10;
+        const final = calculateDiscount(price, discount);
+
+        return {
+          originalPrice: price,
+          discountPercentage: discount,
+          finalPrice: final
+        };
+    dependencies:
+      - "trigger"
+
+  # Test 6: Return con condizionali
+  - id: "conditional-return"
+    step_type: "js"
+    step_config:
+      code: |
+        const value = ctx['calculated-return'].sum;
+
+        if (value > 20) {
+          return { status: "high", value: value };
+        } else {
+          return { status: "low", value: value };
+        }
+    dependencies:
+      - "calculated-return"
+
+  # Test 7: Return con loops
+  - id: "loop-return"
+    step_type: "js"
+    step_config:
+      code: |
+        const items = [];
+        for (let i = 1; i <= 5; i++) {
+          items.push({ id: i, value: i * 10 });
+        }
+        return { items: items, count: items.length };
+    dependencies:
+      - "trigger"
+
+  # Test 8: Early return
+  - id: "early-return"
+    step_type: "js"
+    step_config:
+      code: |
+        const data = ctx['context-return'];
+
+        // Early return se condizione è vera
+        if (data.sum > 100) {
+          return { error: "Sum too high", sum: data.sum };
+        }
+
+        // Processa normalmente
+        return { success: true, sum: data.sum };
+    dependencies:
+      - "context-return"
+
+  # Stage finale
+  - id: "finalize"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "simple-return"
+      - "calculated-return"
+      - "context-return"
+      - "array-return"
+      - "function-return"
+      - "conditional-return"
+      - "loop-return"
+      - "early-return"

@@ -1,0 +1,35 @@
+name: "if-conditional-pipeline"
+description: "Pipeline di esempio per testare l'IfStep con logica condizionale"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage di delay che simula elaborazione
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "trigger"
+
+  # Stage if che valuta una condizione
+  # La condizione può essere una semplice espressione booleana o
+  # un'espressione che usa i dati degli step precedenti (es. ctx.process)
+  - id: "check"
+    step_type: "if"
+    step_config:
+      condition: "true"  # Esempio semplice, può essere: ctx.process !== null
+    dependencies:
+      - "process"
+
+  # Stage successivo che dipende dal risultato dell'if
+  - id: "final"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "check"

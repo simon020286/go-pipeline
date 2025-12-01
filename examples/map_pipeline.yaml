@@ -1,0 +1,45 @@
+name: "map-transformation-pipeline"
+description: "Pipeline di esempio per testare il MapStep con trasformazione campi"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: legge dati JSON
+  - id: "read-data"
+    step_type: "json"
+    step_config:
+      data: '{"userId": 123, "userName": "john_doe", "isActive": true, "score": 95.5}'
+    dependencies:
+      - "trigger"
+
+  # Stage: mappa i campi estraendo e rinominando valori
+  - id: "transform"
+    step_type: "map"
+    step_config:
+      fields:
+        - name: "id"
+          value: "ctx['read-data'].userId"
+          type: "int"
+        - name: "name"
+          value: "ctx['read-data'].userName"
+          type: "string"
+        - name: "active"
+          value: "ctx['read-data'].isActive"
+          type: "bool"
+        - name: "rating"
+          value: "ctx['read-data'].score"
+          type: "string"
+    dependencies:
+      - "read-data"
+
+  # Stage finale: processa i dati trasformati
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "transform"

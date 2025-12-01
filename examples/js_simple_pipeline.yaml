@@ -1,0 +1,123 @@
+name: "javascript-simple-examples"
+description: "Esempi semplici di utilizzo dello step JavaScript"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Esempio 1: Calcolo matematico semplice
+  - id: "calculate"
+    step_type: "js"
+    step_config:
+      code: |
+        return {
+          sum: 10 + 20,
+          product: 5 * 8,
+          power: Math.pow(2, 10),
+          random: Math.random()
+        };
+    dependencies:
+      - "trigger"
+
+  # Esempio 2: Manipolazione stringhe
+  - id: "strings"
+    step_type: "js"
+    step_config:
+      code: |
+        const name = "john doe";
+        return {
+          original: name,
+          uppercase: name.toUpperCase(),
+          capitalized: name.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+          reversed: name.split('').reverse().join(''),
+          length: name.length
+        };
+    dependencies:
+      - "trigger"
+
+  # Esempio 3: Array operations
+  - id: "arrays"
+    step_type: "js"
+    step_config:
+      code: |
+        const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        return {
+          original: numbers,
+          doubled: numbers.map(n => n * 2),
+          evens: numbers.filter(n => n % 2 === 0),
+          sum: numbers.reduce((a, b) => a + b, 0),
+          max: Math.max(...numbers),
+          min: Math.min(...numbers)
+        };
+    dependencies:
+      - "trigger"
+
+  # Esempio 4: Date/time operations
+  - id: "datetime"
+    step_type: "js"
+    step_config:
+      code: |
+        const now = new Date();
+        return {
+          timestamp: now.toISOString(),
+          date: now.toDateString(),
+          time: now.toTimeString(),
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          day: now.getDate(),
+          unix: now.getTime()
+        };
+    dependencies:
+      - "trigger"
+
+  # Esempio 5: Accesso al contesto
+  - id: "use-context"
+    step_type: "js"
+    step_config:
+      code: |
+        // Accede ai risultati degli step precedenti
+        const calc = ctx.calculate;
+        const str = ctx.strings;
+        const arr = ctx.arrays;
+
+        return {
+          message: `The sum is ${calc.sum} and max array value is ${arr.max}`,
+          combinedLength: str.length + arr.original.length,
+          timestamp: ctx.datetime.timestamp
+        };
+    dependencies:
+      - "calculate"
+      - "strings"
+      - "arrays"
+      - "datetime"
+
+  # Esempio 6: Conditional logic
+  - id: "conditional"
+    step_type: "js"
+    step_config:
+      code: |
+        const value = ctx.calculate.sum;
+        const result = value > 25 ? 'high' : 'low';
+        const category = value < 10 ? 'A' : value < 30 ? 'B' : 'C';
+
+        return {
+          value: value,
+          result: result,
+          category: category,
+          isHigh: value > 25,
+          message: `Value ${value} is in category ${category}`
+        };
+    dependencies:
+      - "calculate"
+
+  # Stage finale
+  - id: "done"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "use-context"
+      - "conditional"

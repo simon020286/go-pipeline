@@ -1,0 +1,102 @@
+name: "javascript-transform-pipeline"
+description: "Pipeline che usa JavaScript per trasformazioni complesse"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: prepara dati di esempio
+  - id: "prepare-data"
+    step_type: "json"
+    step_config:
+      data: |
+        {
+          "users": [
+            {"id": 1, "name": "Alice", "age": 30, "active": true},
+            {"id": 2, "name": "Bob", "age": 25, "active": false},
+            {"id": 3, "name": "Charlie", "age": 35, "active": true},
+            {"id": 4, "name": "David", "age": 28, "active": true}
+          ],
+          "threshold": 27
+        }
+    dependencies:
+      - "trigger"
+
+  # Stage: trasformazione JavaScript - filtra e mappa utenti
+  - id: "transform-users"
+    step_type: "js"
+    step_config:
+      code: |
+        const data = ctx['prepare-data'];
+        const activeUsers = data.users
+          .filter(u => u.active && u.age > data.threshold)
+          .map(u => ({
+            userId: u.id,
+            displayName: u.name.toUpperCase(),
+            ageGroup: u.age < 30 ? 'young' : 'senior'
+          }));
+        return {
+          users: activeUsers,
+          count: activeUsers.length,
+          timestamp: new Date().toISOString()
+        };
+    dependencies:
+      - "prepare-data"
+
+  # Stage: calcolo statistiche con JavaScript
+  - id: "calculate-stats"
+    step_type: "js"
+    step_config:
+      code: |
+        const data = ctx['prepare-data'];
+        const ages = data.users.map(u => u.age);
+        const sum = ages.reduce((a, b) => a + b, 0);
+        const avg = sum / ages.length;
+        const max = Math.max(...ages);
+        const min = Math.min(...ages);
+        const activeCount = data.users.filter(u => u.active).length;
+
+        return {
+          totalUsers: data.users.length,
+          activeUsers: activeCount,
+          inactiveUsers: data.users.length - activeCount,
+          averageAge: avg.toFixed(2),
+          maxAge: max,
+          minAge: min
+        };
+    dependencies:
+      - "prepare-data"
+
+  # Stage: combina risultati di più step
+  - id: "combine-results"
+    step_type: "js"
+    step_config:
+      code: |
+        const transformed = ctx['transform-users'];
+        const stats = ctx['calculate-stats'];
+
+        return {
+          summary: {
+            processedUsers: transformed.users,
+            processedCount: transformed.count,
+            statistics: stats
+          },
+          metadata: {
+            processedAt: transformed.timestamp,
+            totalUsers: stats.totalUsers
+          }
+        };
+    dependencies:
+      - "transform-users"
+      - "calculate-stats"
+
+  # Stage finale
+  - id: "finalize"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "combine-results"

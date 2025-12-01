@@ -1,0 +1,61 @@
+name: "json-array-file-pipeline"
+description: "Pipeline che legge un file JSON array e lo parsifica"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: legge file JSON con array come root
+  - id: "read-array-file"
+    step_type: "file"
+    step_config:
+      path: "examples/json_array_data.json"
+    dependencies:
+      - "trigger"
+
+  # Stage: parsifica l'array JSON
+  - id: "parse-array"
+    step_type: "json"
+    step_config:
+      data: "ctx['read-array-file']"
+    dependencies:
+      - "read-array-file"
+
+  # Stage: itera sull'array parsificato
+  - id: "iterate-users"
+    step_type: "foreach"
+    step_config:
+      list: "ctx['parse-array']"
+    dependencies:
+      - "parse-array"
+
+  # Stage: estrae il primo utente
+  - id: "extract-first-user"
+    step_type: "map"
+    step_config:
+      fields:
+        - name: "userId"
+          value: "ctx['iterate-users'].iteration_0.item.id"
+          type: "int"
+        - name: "userName"
+          value: "ctx['iterate-users'].iteration_0.item.name"
+          type: "string"
+        - name: "userEmail"
+          value: "ctx['iterate-users'].iteration_0.item.email"
+          type: "string"
+        - name: "userRole"
+          value: "ctx['iterate-users'].iteration_0.item.role"
+          type: "string"
+    dependencies:
+      - "iterate-users"
+
+  # Stage finale
+  - id: "finalize"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "extract-first-user"

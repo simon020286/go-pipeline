@@ -1,0 +1,48 @@
+name: "jsonplaceholder-api-demo"
+description: "Demonstrates JSONPlaceholder API operations: fetch users, posts, and create new post"
+
+stages:
+  # Stage 1: Get all users
+  - id: "get-users"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "get_users"
+    dependencies: []
+
+  # Stage 2: Get posts for user 1
+  - id: "get-user-posts"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "get_posts"
+      user_id: 1
+    dependencies:
+      - "get-users"
+
+  # Stage 3: Get a specific post
+  - id: "get-post-detail"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "get_post"
+      post_id: 1
+    dependencies:
+      - "get-user-posts"
+
+  # Stage 4: Get comments for the post
+  - id: "get-post-comments"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "get_comments"
+      post_id: 1
+    dependencies:
+      - "get-post-detail"
+
+  # Stage 5: Create a new post
+  - id: "create-new-post"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "create_post"
+      title: "Test Post from Go Pipeline"
+      body: "This is a test post created using the dynamic API step system"
+      user_id: 1
+    dependencies:
+      - "get-post-comments"

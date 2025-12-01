@@ -1,0 +1,43 @@
+name: "http-client-pipeline"
+description: "Pipeline di esempio per testare l'HTTPClientStep con chiamate HTTP"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 10s"
+    dependencies: []
+
+  # Stage GET: chiamata HTTP GET
+  - id: "fetch-data"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/posts/1"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "trigger"
+
+  # Stage POST: chiamata HTTP POST con body
+  - id: "create-data"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/posts"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        title: "Test Post"
+        body: "This is a test post from go-pipeline"
+        userId: 1
+      response: "json"
+    dependencies:
+      - "fetch-data"
+
+  # Stage finale: delay per mostrare i risultati
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "create-data"

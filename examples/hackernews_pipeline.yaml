@@ -1,0 +1,37 @@
+name: "hackernews-top-stories"
+description: "Fetch top stories from HackerNews and get details for the first 3"
+
+stages:
+  # Stage 1: Get list of top story IDs
+  - id: "get-top-stories"
+    step_type: "hackernews"
+    step_config:
+      operation: "get_top_stories"
+    dependencies: []
+
+  # Stage 2: Get the first story details
+  - id: "get-first-story"
+    step_type: "hackernews"
+    step_config:
+      operation: "get_item"
+      item_id: "$js: ctx['get-top-stories'].Body[0]"
+    dependencies:
+      - "get-top-stories"
+
+  # Stage 3: Get the second story details
+  - id: "get-second-story"
+    step_type: "hackernews"
+    step_config:
+      operation: "get_item"
+      item_id: "$js: ctx['get-top-stories'].Body[1]"
+    dependencies:
+      - "get-top-stories"
+
+  # Stage 4: Get the third story details
+  - id: "get-third-story"
+    step_type: "hackernews"
+    step_config:
+      operation: "get_item"
+      item_id: "$js: ctx['get-top-stories'].Body[2]"
+    dependencies:
+      - "get-top-stories"

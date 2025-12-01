@@ -1,0 +1,67 @@
+name: "map-http-transformation-pipeline"
+description: "Pipeline che trasforma dati da API REST usando MapStep"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 10s"
+    dependencies: []
+
+  # Stage: fetch user data da API
+  - id: "fetch-user"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/users/1"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "trigger"
+
+  # Stage: trasforma i dati dell'utente in un formato custom
+  - id: "map-user"
+    step_type: "map"
+    step_config:
+      fields:
+        - name: "userId"
+          value: "ctx['fetch-user'].body.id"
+          type: "int"
+        - name: "fullName"
+          value: "ctx['fetch-user'].body.name"
+          type: "string"
+        - name: "email"
+          value: "ctx['fetch-user'].body.email"
+          type: "string"
+        - name: "companyName"
+          value: "ctx['fetch-user'].body.company.name"
+          type: "string"
+        - name: "city"
+          value: "ctx['fetch-user'].body.address.city"
+          type: "string"
+    dependencies:
+      - "fetch-user"
+
+  # Stage: crea una versione semplificata con calcoli
+  - id: "map-summary"
+    step_type: "map"
+    step_config:
+      fields:
+        - name: "id"
+          value: "ctx['map-user'].userId"
+          type: "int"
+        - name: "displayName"
+          value: "ctx['map-user'].fullName + ' (' + ctx['map-user'].email + ')'"
+          type: "string"
+        - name: "location"
+          value: "ctx['map-user'].city"
+          type: "string"
+    dependencies:
+      - "map-user"
+
+  # Stage finale: processa il summary
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "map-summary"

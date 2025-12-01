@@ -1,0 +1,90 @@
+name: "json-array-test-pipeline"
+description: "Pipeline per testare il JsonStep con array JSON"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Test 1: Parse array of strings
+  - id: "parse-string-array"
+    step_type: "json"
+    step_config:
+      data: '["apple", "banana", "cherry"]'
+    dependencies:
+      - "trigger"
+
+  # Test 2: Parse array of numbers
+  - id: "parse-number-array"
+    step_type: "json"
+    step_config:
+      data: '[1, 2, 3, 4, 5]'
+    dependencies:
+      - "trigger"
+
+  # Test 3: Parse array of objects
+  - id: "parse-object-array"
+    step_type: "json"
+    step_config:
+      data: '[{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]'
+    dependencies:
+      - "trigger"
+
+  # Test 4: Parse plain object (original functionality)
+  - id: "parse-object"
+    step_type: "json"
+    step_config:
+      data: '{"name": "test", "value": 42}'
+    dependencies:
+      - "trigger"
+
+  # Test 5: Parse primitive values
+  - id: "parse-string"
+    step_type: "json"
+    step_config:
+      data: '"hello world"'
+    dependencies:
+      - "trigger"
+
+  - id: "parse-number"
+    step_type: "json"
+    step_config:
+      data: '123'
+    dependencies:
+      - "trigger"
+
+  - id: "parse-boolean"
+    step_type: "json"
+    step_config:
+      data: 'true'
+    dependencies:
+      - "trigger"
+
+  - id: "parse-null"
+    step_type: "json"
+    step_config:
+      data: 'null'
+    dependencies:
+      - "trigger"
+
+  # Test usage with foreach
+  - id: "foreach-array"
+    step_type: "foreach"
+    step_config:
+      list: "ctx['parse-object-array']"
+    dependencies:
+      - "parse-object-array"
+
+  # Final delay
+  - id: "finalize"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "parse-string-array"
+      - "parse-number-array"
+      - "parse-object-array"
+      - "parse-object"
+      - "foreach-array"

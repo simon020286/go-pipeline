@@ -1,0 +1,178 @@
+name: "javascript-advanced-pipeline"
+description: "Pipeline avanzata con JavaScript per manipolazioni complesse"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 10s"
+    dependencies: []
+
+  # Stage: legge array da file
+  - id: "read-users"
+    step_type: "file"
+    step_config:
+      path: "examples/users_list.json"
+    dependencies:
+      - "trigger"
+
+  # Stage: parsifica JSON array
+  - id: "parse-users"
+    step_type: "json"
+    step_config:
+      data: "ctx['read-users']"
+    dependencies:
+      - "read-users"
+
+  # Stage: trasformazione complessa con JavaScript
+  - id: "enrich-users"
+    step_type: "js"
+    step_config:
+      code: |
+        const users = ctx['parse-users'];
+
+        // Funzione helper per determinare il livello
+        function getUserLevel(user) {
+          if (user.role === 'admin') return 'HIGH';
+          if (user.active) return 'MEDIUM';
+          return 'LOW';
+        }
+
+        // Funzione per creare username
+        function generateUsername(name) {
+          return name.toLowerCase().replace(/\s+/g, '.');
+        }
+
+        // Arricchisci ogni utente con dati calcolati
+        const enriched = users.map(user => ({
+          ...user,
+          username: generateUsername(user.name),
+          level: getUserLevel(user),
+          initials: user.name.split(' ').map(n => n[0]).join(''),
+          tags: [
+            user.role,
+            user.active ? 'active' : 'inactive',
+            getUserLevel(user)
+          ]
+        }));
+
+        // Raggruppa per ruolo
+        const byRole = enriched.reduce((acc, user) => {
+          if (!acc[user.role]) acc[user.role] = [];
+          acc[user.role].push(user);
+          return acc;
+        }, {});
+
+        return {
+          users: enriched,
+          groupedByRole: byRole,
+          summary: {
+            total: enriched.length,
+            byRole: Object.keys(byRole).map(role => ({
+              role: role,
+              count: byRole[role].length
+            }))
+          }
+        };
+    dependencies:
+      - "parse-users"
+
+  # Stage: genera report con JavaScript
+  - id: "generate-report"
+    step_type: "js"
+    step_config:
+      code: |
+        const data = ctx['enrich-users'];
+
+        // Crea report testuale
+        const lines = [];
+        lines.push('=== USER REPORT ===');
+        lines.push('');
+        lines.push(`Total Users: ${data.summary.total}`);
+        lines.push('');
+        lines.push('By Role:');
+
+        data.summary.byRole.forEach(item => {
+          lines.push(`  ${item.role}: ${item.count} users`);
+        });
+
+        lines.push('');
+        lines.push('User Details:');
+
+        data.users.forEach(user => {
+          lines.push(`  [${user.level}] ${user.name} (@${user.username})`);
+          lines.push(`       Email: ${user.email}`);
+          lines.push(`       Role: ${user.role}, Active: ${user.active}`);
+          lines.push('');
+        });
+
+        return {
+          report: lines.join('\n'),
+          generatedAt: new Date().toISOString()
+        };
+    dependencies:
+      - "enrich-users"
+
+  # Stage: validazione con JavaScript
+  - id: "validate-data"
+    step_type: "js"
+    step_config:
+      code: |
+        const data = ctx['enrich-users'];
+        const errors = [];
+        const warnings = [];
+
+        // Validazione
+        data.users.forEach(user => {
+          // Check email format
+          if (!user.email.includes('@')) {
+            errors.push(`Invalid email for user ${user.id}: ${user.email}`);
+          }
+
+          // Check for inactive admins
+          if (user.role === 'admin' && !user.active) {
+            warnings.push(`Admin user ${user.name} is inactive`);
+          }
+
+          // Check username uniqueness (simplified)
+          const duplicates = data.users.filter(u => u.username === user.username);
+          if (duplicates.length > 1) {
+            errors.push(`Duplicate username: ${user.username}`);
+          }
+        });
+
+        return {
+          valid: errors.length === 0,
+          errorCount: errors.length,
+          warningCount: warnings.length,
+          errors: errors,
+          warnings: warnings
+        };
+    dependencies:
+      - "enrich-users"
+
+  # Stage: combina report e validazione
+  - id: "final-output"
+    step_type: "js"
+    step_config:
+      code: |
+        const report = ctx['generate-report'];
+        const validation = ctx['validate-data'];
+
+        return {
+          report: report.report,
+          validation: validation,
+          status: validation.valid ? 'SUCCESS' : 'FAILED',
+          timestamp: report.generatedAt
+        };
+    dependencies:
+      - "generate-report"
+      - "validate-data"
+
+  # Stage finale
+  - id: "done"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "final-output"

@@ -1,0 +1,2 @@
+Hello from file step!
+This is a test file to verify the file step implementation.

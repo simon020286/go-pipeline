@@ -1,0 +1,44 @@
+name: "http-client-dynamic-pipeline"
+description: "Pipeline con interpolazione dinamica per HTTPClientStep"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 10s"
+    dependencies: []
+
+  # Stage: prepara dati
+  - id: "prepare"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "trigger"
+
+  # Stage: chiamata HTTP con URL dinamico
+  # Esempio di interpolazione: usa $js: prefix per espressioni JavaScript
+  - id: "fetch-dynamic"
+    step_type: "http_client"
+    step_config:
+      url: "$js: 'https://jsonplaceholder.typicode.com/posts/' + (ctx.prepare ? '1' : '2')"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "prepare"
+
+  # Stage: chiamata HTTP POST con body dinamico
+  - id: "create-dynamic"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/posts"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+      body:
+        title: "Dynamic Post"
+        body: "Body text here"
+        userId: 1
+      response: "json"
+    dependencies:
+      - "fetch-dynamic"

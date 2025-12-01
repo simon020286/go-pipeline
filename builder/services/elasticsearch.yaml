@@ -1,0 +1,101 @@
+service:
+  name: "elasticsearch"
+  description: "Elasticsearch API - Search and analytics engine"
+  version: "8.x"
+
+defaults:
+  base_url: "{{.base_url}}"
+  headers:
+    Content-Type: "application/json"
+  auth:
+    type: "bearer"
+    header: "Authorization"
+    value: "Bearer {{.api_token}}"
+  timeout: 30
+
+operations:
+  search:
+    description: "Search documents in an index"
+    method: "POST"
+    path: "/{{.index}}/_search"
+    body: |
+      {
+        "query": {{.query}},
+        "size": {{.size}},
+        "from": {{.from}}
+      }
+    response_type: "json"
+
+  get_document:
+    description: "Get a document by ID"
+    method: "GET"
+    path: "/{{.index}}/{{.type}}/{{.doc_id}}"
+    type: "_doc"
+    response_type: "json"
+
+  index_document:
+    description: "Index a document (with optional ID)"
+    method: "POST"
+    path: "/{{.index}}/{{.type}}{{if .doc_id}}/{{.doc_id}}{{end}}"
+    body: "{{.document}}"
+    type: "_doc"
+    response_type: "json"
+
+  update_document:
+    description: "Update a document"
+    method: "POST"
+    path: "/{{.index}}/_update/{{.doc_id}}"
+    body: |
+      {
+        "doc": {{.document}}
+      }
+    response_type: "json"
+
+  delete_document:
+    description: "Delete a document by ID"
+    method: "DELETE"
+    path: "/{{.index}}/{{.type}}/{{.doc_id}}"
+    type: "_doc"
+    response_type: "json"
+
+  bulk:
+    description: "Perform multiple indexing or delete operations in a single API call"
+    method: "POST"
+    path: "/{{.index}}/_bulk"
+    headers:
+      Content-Type: "application/x-ndjson"
+    body: "{{.operations}}"
+    response_type: "json"
+
+  create_index:
+    description: "Create a new index"
+    method: "PUT"
+    path: "/{{.index}}"
+    body: |
+      {
+        "settings": {{.settings}},
+        "mappings": {{.mappings}}
+      }
+    response_type: "json"
+
+  delete_index:
+    description: "Delete an index"
+    method: "DELETE"
+    path: "/{{.index}}"
+    response_type: "json"
+
+  get_index:
+    description: "Get index information"
+    method: "GET"
+    path: "/{{.index}}"
+    response_type: "json"
+
+  count:
+    description: "Count documents matching a query"
+    method: "POST"
+    path: "/{{.index}}/_count"
+    body: |
+      {
+        "query": {{.query}}
+      }
+    response_type: "json"

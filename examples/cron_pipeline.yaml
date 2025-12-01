@@ -1,0 +1,35 @@
+stages:
+  - id: cron
+    step:
+      type: cron
+      config:
+        name: cron-trigger
+        interval: "3s"
+        continuous: "true"
+    dependencies: []
+
+  - id: fetch
+    step:
+      type: simple
+      config:
+        name: fetch-data
+        duration: "500ms"
+    dependencies:
+      - cron
+
+  - id: process
+    step:
+      type: data_processing
+      config:
+        name: process-data
+    dependencies:
+      - fetch
+
+  - id: save
+    step:
+      type: simple
+      config:
+        name: save-results
+        duration: "200ms"
+    dependencies:
+      - process

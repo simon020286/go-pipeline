@@ -1,0 +1,156 @@
+name: "javascript-with-foreach-pipeline"
+description: "Pipeline che combina JavaScript e foreach per elaborazioni complesse"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: prepara lista di prodotti
+  - id: "products"
+    step_type: "json"
+    step_config:
+      data: |
+        [
+          {"id": 1, "name": "Laptop", "price": 999.99, "quantity": 5},
+          {"id": 2, "name": "Mouse", "price": 29.99, "quantity": 50},
+          {"id": 3, "name": "Keyboard", "price": 79.99, "quantity": 30},
+          {"id": 4, "name": "Monitor", "price": 299.99, "quantity": 15}
+        ]
+    dependencies:
+      - "trigger"
+
+  # Stage: itera sui prodotti
+  - id: "iterate-products"
+    step_type: "foreach"
+    step_config:
+      list: "ctx.products"
+    dependencies:
+      - "products"
+
+  # Stage: elabora ogni prodotto con JavaScript
+  - id: "process-first-product"
+    step_type: "js"
+    step_config:
+      code: |
+        const iteration = ctx['iterate-products'].iteration_0;
+        const product = iteration.item;
+
+        // Calcola totale e sconto
+        const total = product.price * product.quantity;
+        const discount = total > 1000 ? 0.1 : 0.05;
+        const finalPrice = total * (1 - discount);
+
+        return {
+          productId: product.id,
+          productName: product.name,
+          unitPrice: product.price,
+          quantity: product.quantity,
+          subtotal: total.toFixed(2),
+          discount: (discount * 100) + '%',
+          total: finalPrice.toFixed(2),
+          itemIndex: iteration.index
+        };
+    dependencies:
+      - "iterate-products"
+
+  # Stage: elabora secondo prodotto
+  - id: "process-second-product"
+    step_type: "js"
+    step_config:
+      code: |
+        const iteration = ctx['iterate-products'].iteration_1;
+        const product = iteration.item;
+
+        const total = product.price * product.quantity;
+        const discount = total > 1000 ? 0.1 : 0.05;
+        const finalPrice = total * (1 - discount);
+
+        return {
+          productId: product.id,
+          productName: product.name,
+          total: finalPrice.toFixed(2)
+        };
+    dependencies:
+      - "iterate-products"
+
+  # Stage: aggrega tutti i prodotti usando il risultato del foreach
+  - id: "aggregate-all"
+    step_type: "js"
+    step_config:
+      code: |
+        const foreachResult = ctx['iterate-products'];
+
+        // Processa tutte le iterazioni
+        const processed = [];
+        let grandTotal = 0;
+
+        foreachResult.items.forEach(iteration => {
+          const product = iteration.item;
+          const total = product.price * product.quantity;
+          const discount = total > 1000 ? 0.1 : 0.05;
+          const finalPrice = total * (1 - discount);
+
+          processed.push({
+            id: product.id,
+            name: product.name,
+            total: parseFloat(finalPrice.toFixed(2))
+          });
+
+          grandTotal += finalPrice;
+        });
+
+        return {
+          products: processed,
+          count: foreachResult.count,
+          grandTotal: grandTotal.toFixed(2),
+          averagePrice: (grandTotal / foreachResult.count).toFixed(2)
+        };
+    dependencies:
+      - "iterate-products"
+
+  # Stage: genera invoice
+  - id: "generate-invoice"
+    step_type: "js"
+    step_config:
+      code: |
+        const summary = ctx['aggregate-all'];
+        const first = ctx['process-first-product'];
+
+        const lines = [];
+        lines.push('=== INVOICE ===');
+        lines.push('');
+        lines.push('Items:');
+
+        summary.products.forEach(p => {
+          lines.push(`  ${p.name}: $${p.total}`);
+        });
+
+        lines.push('');
+        lines.push(`Total Items: ${summary.count}`);
+        lines.push(`Grand Total: $${summary.grandTotal}`);
+        lines.push(`Average Price: $${summary.averagePrice}`);
+        lines.push('');
+        lines.push('Featured Item:');
+        lines.push(`  ${first.productName} (${first.quantity} units @ $${first.unitPrice})`);
+        lines.push(`  Discount: ${first.discount}`);
+        lines.push(`  Total: $${first.total}`);
+
+        return {
+          invoice: lines.join('\n'),
+          total: summary.grandTotal,
+          itemCount: summary.count
+        };
+    dependencies:
+      - "aggregate-all"
+      - "process-first-product"
+
+  # Stage finale
+  - id: "done"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "generate-invoice"

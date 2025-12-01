@@ -1,0 +1,88 @@
+service:
+  name: "jsonplaceholder"
+  description: "JSONPlaceholder API - Free fake REST API for testing and prototyping"
+  version: "1.0"
+
+defaults:
+  base_url: "https://jsonplaceholder.typicode.com"
+  headers:
+    Content-Type: "application/json"
+  timeout: 30
+
+operations:
+  get_posts:
+    description: "Get all posts or filter by userId"
+    method: "GET"
+    path: "/posts"
+    query_params:
+      userId: "{{.user_id}}"
+    response_type: "json"
+
+  get_post:
+    description: "Get a specific post by ID"
+    method: "GET"
+    path: "/posts/{{.post_id}}"
+    response_type: "json"
+
+  create_post:
+    description: "Create a new post"
+    method: "POST"
+    path: "/posts"
+    body: |
+      {
+        "title": "{{.title}}",
+        "body": "{{.body}}",
+        "userId": {{.user_id}}
+      }
+    response_type: "json"
+
+  update_post:
+    description: "Update an existing post"
+    method: "PUT"
+    path: "/posts/{{.post_id}}"
+    body: |
+      {
+        "id": {{.post_id}},
+        "title": "{{.title}}",
+        "body": "{{.body}}",
+        "userId": {{.user_id}}
+      }
+    response_type: "json"
+
+  delete_post:
+    description: "Delete a post"
+    method: "DELETE"
+    path: "/posts/{{.post_id}}"
+    response_type: "json"
+
+  get_comments:
+    description: "Get comments for a post"
+    method: "GET"
+    path: "/posts/{{.post_id}}/comments"
+    response_type: "json"
+
+  get_users:
+    description: "Get all users"
+    method: "GET"
+    path: "/users"
+    response_type: "json"
+
+  get_user:
+    description: "Get a specific user by ID"
+    method: "GET"
+    path: "/users/{{.user_id}}"
+    response_type: "json"
+
+  get_todos:
+    description: "Get todos, optionally filtered by userId"
+    method: "GET"
+    path: "/todos"
+    query_params:
+      userId: "{{.user_id}}"
+    response_type: "json"
+
+  get_todo:
+    description: "Get a specific todo by ID"
+    method: "GET"
+    path: "/todos/{{.todo_id}}"
+    response_type: "json"

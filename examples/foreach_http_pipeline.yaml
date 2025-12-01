@@ -1,0 +1,66 @@
+name: "foreach-http-pipeline"
+description: "Pipeline che itera su dati da API e usa gli output del foreach"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 10s"
+    dependencies: []
+
+  # Stage: fetch lista di users da API
+  - id: "fetch-users"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/users"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "trigger"
+
+  # Stage: itera sulla lista di users
+  # Emette:
+  # - ctx.iterate.iteration_0 = {item: user0, index: 0}
+  # - ctx.iterate.iteration_1 = {item: user1, index: 1}
+  # - ...
+  # - ctx.iterate (default) = {items: [...], count: N}
+  - id: "iterate"
+    step_type: "foreach"
+    step_config:
+      list: "ctx['fetch-users'].body"
+    dependencies:
+      - "fetch-users"
+
+  # Stage: mappa il primo utente (iteration_0)
+  - id: "map-first-user"
+    step_type: "map"
+    step_config:
+      fields:
+        - name: "userId"
+          value: "ctx.iterate.iteration_0.item.id"
+          type: "int"
+        - name: "userName"
+          value: "ctx.iterate.iteration_0.item.name"
+          type: "string"
+        - name: "userEmail"
+          value: "ctx.iterate.iteration_0.item.email"
+          type: "string"
+    dependencies:
+      - "iterate"
+
+  # Stage: verifica quanti utenti abbiamo processato in totale
+  - id: "check-count"
+    step_type: "if"
+    step_config:
+      condition: "ctx.iterate.count > 5"
+    dependencies:
+      - "iterate"
+
+  # Stage finale: processa i risultati
+  - id: "finalize"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "map-first-user"
+      - "check-count"

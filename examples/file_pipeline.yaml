@@ -1,0 +1,25 @@
+name: "file-reader-pipeline"
+description: "Pipeline di esempio per testare il FileStep"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage di lettura file
+  - id: "read-file"
+    step_type: "file"
+    step_config:
+      path: "examples/test_data.txt"
+    dependencies:
+      - "trigger"
+
+  # Stage di delay per mostrare il contenuto
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "read-file"

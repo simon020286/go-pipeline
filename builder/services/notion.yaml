@@ -1,0 +1,113 @@
+service:
+  name: "notion"
+  description: "Notion API - Create and manage pages, databases, and content"
+  version: "2022-06-28"
+
+defaults:
+  base_url: "https://api.notion.com/v1"
+  headers:
+    Content-Type: "application/json"
+    Notion-Version: "2022-06-28"
+  auth:
+    type: "bearer"
+    header: "Authorization"
+    value: "Bearer {{.api_token}}"
+  timeout: 30
+
+operations:
+  get_page:
+    description: "Retrieve a page by ID"
+    method: "GET"
+    path: "/pages/{{.page_id}}"
+    response_type: "json"
+
+  create_page:
+    description: "Create a new page in a database or as a child of another page"
+    method: "POST"
+    path: "/pages"
+    body: |
+      {
+        "parent": {{.parent}},
+        "properties": {{.properties}}
+      }
+    response_type: "json"
+
+  update_page:
+    description: "Update page properties"
+    method: "PATCH"
+    path: "/pages/{{.page_id}}"
+    body: |
+      {
+        "properties": {{.properties}}
+      }
+    response_type: "json"
+
+  query_database:
+    description: "Query a database"
+    method: "POST"
+    path: "/databases/{{.database_id}}/query"
+    body: |
+      {
+        "filter": {{.filter}},
+        "sorts": {{.sorts}},
+        "page_size": {{.page_size}}
+      }
+    response_type: "json"
+
+  get_database:
+    description: "Retrieve a database by ID"
+    method: "GET"
+    path: "/databases/{{.database_id}}"
+    response_type: "json"
+
+  create_database:
+    description: "Create a new database"
+    method: "POST"
+    path: "/databases"
+    body: |
+      {
+        "parent": {{.parent}},
+        "title": {{.title}},
+        "properties": {{.properties}}
+      }
+    response_type: "json"
+
+  get_block_children:
+    description: "Retrieve block children"
+    method: "GET"
+    path: "/blocks/{{.block_id}}/children"
+    response_type: "json"
+
+  append_block_children:
+    description: "Append block children to a page or block"
+    method: "PATCH"
+    path: "/blocks/{{.block_id}}/children"
+    body: |
+      {
+        "children": {{.children}}
+      }
+    response_type: "json"
+
+  search:
+    description: "Search pages and databases"
+    method: "POST"
+    path: "/search"
+    body: |
+      {
+        "query": "{{.query}}",
+        "filter": {{.filter}},
+        "sort": {{.sort}}
+      }
+    response_type: "json"
+
+  get_user:
+    description: "Retrieve a user by ID"
+    method: "GET"
+    path: "/users/{{.user_id}}"
+    response_type: "json"
+
+  list_users:
+    description: "List all users"
+    method: "GET"
+    path: "/users"
+    response_type: "json"

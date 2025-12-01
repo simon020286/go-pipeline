@@ -1,0 +1,36 @@
+name: "hackernews-dynamic-fetch"
+description: "Fetch HackerNews stories dynamically using interpolation to access nested data"
+
+stages:
+  # Stage 1: Get best stories IDs
+  - id: "get_best_stories"
+    step_type: "hackernews"
+    step_config:
+      operation: "get_best_stories"
+    dependencies: []
+
+  # Stage 2: Get details of the top story (using $js: prefix for dynamic values)
+  - id: "get-top-story-details"
+    step_type: "hackernews"
+    step_config:
+      operation: "get_item"
+      item_id: "$js: ctx.get_best_stories.Body[0]"
+    dependencies:
+      - "get_best_stories"
+
+  # # Stage 3: Get the author profile (using $js: prefix for nested interpolation)
+  # - id: "get-author-profile"
+  #   step_type: "hackernews"
+  #   step_config:
+  #     operation: "get_user"
+  #     username: "$js: ctx.get_top_story_details.Body.by"
+  #   dependencies:
+  #     - "get-top-story-details"
+
+  # # Stage 4: Get max item ID to see latest activity
+  # - id: "get-max-item"
+  #   step_type: "hackernews"
+  #   step_config:
+  #     operation: "get_max_item"
+  #   dependencies:
+  #     - "get-author-profile"

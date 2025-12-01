@@ -1,0 +1,47 @@
+service:
+  name: "hackernews"
+  description: "HackerNews API - Access stories, comments, and user information"
+  version: "v0"
+
+defaults:
+  base_url: "https://hacker-news.firebaseio.com/v0"
+  headers:
+    Accept: "application/json"
+  timeout: 30
+
+operations:
+  get_top_stories:
+    description: "Get list of top story IDs"
+    method: "GET"
+    path: "/topstories.json"
+    response_type: "json"
+
+  get_new_stories:
+    description: "Get list of new story IDs"
+    method: "GET"
+    path: "/newstories.json"
+    response_type: "json"
+
+  get_best_stories:
+    description: "Get list of best story IDs"
+    method: "GET"
+    path: "/beststories.json"
+    response_type: "json"
+
+  get_item:
+    description: "Get a specific item (story, comment, job, poll, or pollopt) by ID"
+    method: "GET"
+    path: "/item/{{.item_id}}.json"
+    response_type: "json"
+
+  get_user:
+    description: "Get user profile by username"
+    method: "GET"
+    path: "/user/{{.username}}.json"
+    response_type: "json"
+
+  get_max_item:
+    description: "Get the current largest item ID"
+    method: "GET"
+    path: "/maxitem.json"
+    response_type: "json"

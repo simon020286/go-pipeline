@@ -1,0 +1,33 @@
+name: "json-parser-pipeline"
+description: "Pipeline di esempio per testare il JsonStep con parsing JSON"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: legge un file JSON
+  - id: "read-json-file"
+    step_type: "file"
+    step_config:
+      path: "examples/sample_data.json"
+    dependencies:
+      - "trigger"
+
+  # Stage: parsifica il contenuto JSON del file
+  - id: "parse-json"
+    step_type: "json"
+    step_config:
+      data: "ctx['read-json-file']"
+    dependencies:
+      - "read-json-file"
+
+  # Stage finale: processa i dati JSON parsificati
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "parse-json"

@@ -1,0 +1,38 @@
+name: "foreach-basic-pipeline"
+description: "Pipeline di esempio per testare il ForeachStep con iterazione su lista"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: crea una lista di dati da iterare
+  - id: "prepare-data"
+    step_type: "json"
+    step_config:
+      data: '["apple", "banana", "cherry", "date", "elderberry"]'
+    dependencies:
+      - "trigger"
+
+  # Stage: itera sulla lista
+  # Questo step emette:
+  # - ctx.foreach.iteration_0 = {item: "apple", index: 0}
+  # - ctx.foreach.iteration_1 = {item: "banana", index: 1}
+  # - ...
+  # - ctx.foreach (default) = {items: [...], count: 5}
+  - id: "foreach"
+    step_type: "foreach"
+    step_config:
+      list: "ctx['prepare-data']"
+    dependencies:
+      - "prepare-data"
+
+  # Stage: accede al risultato aggregato finale
+  - id: "process-all"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "foreach"

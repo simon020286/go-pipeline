@@ -1,0 +1,75 @@
+name: "foreach-file-processing-pipeline"
+description: "Pipeline che legge un file JSON con lista di users e itera su di essi"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 5s"
+    dependencies: []
+
+  # Stage: legge il file JSON con la lista di users
+  - id: "read-file"
+    step_type: "file"
+    step_config:
+      path: "examples/users_list.json"
+    dependencies:
+      - "trigger"
+
+  # Stage: parsifica il JSON
+  - id: "parse-json"
+    step_type: "json"
+    step_config:
+      data: "ctx['read-file']"
+    dependencies:
+      - "read-file"
+
+  # Stage: itera su ogni user
+  # Output:
+  # - ctx['process-users'].iteration_0 = {item: {id: 1, name: "Alice", ...}, index: 0}
+  # - ctx['process-users'].iteration_1 = {item: {id: 2, name: "Bob", ...}, index: 1}
+  # - ctx['process-users'].iteration_2 = {item: {id: 3, name: "Charlie", ...}, index: 2}
+  # - ctx['process-users'] (default) = {items: [...], count: 3}
+  - id: "process-users"
+    step_type: "foreach"
+    step_config:
+      list: "ctx['parse-json']"
+    dependencies:
+      - "parse-json"
+
+  # Stage: estrae informazioni dal secondo user (index 1)
+  - id: "extract-second-user"
+    step_type: "map"
+    step_config:
+      fields:
+        - name: "id"
+          value: "ctx['process-users'].iteration_1.item.id"
+          type: "int"
+        - name: "name"
+          value: "ctx['process-users'].iteration_1.item.name"
+          type: "string"
+        - name: "isActive"
+          value: "ctx['process-users'].iteration_1.item.active"
+          type: "bool"
+        - name: "position"
+          value: "ctx['process-users'].iteration_1.index"
+          type: "int"
+    dependencies:
+      - "process-users"
+
+  # Stage: verifica se ci sono più di 2 users
+  - id: "check-count"
+    step_type: "if"
+    step_config:
+      condition: "ctx['process-users'].count >= 2"
+    dependencies:
+      - "process-users"
+
+  # Stage finale
+  - id: "finalize"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "extract-second-user"
+      - "check-count"

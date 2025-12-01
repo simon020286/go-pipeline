@@ -1,0 +1,36 @@
+name: "json-http-parser-pipeline"
+description: "Pipeline che combina HTTP client e JSON parser"
+stages:
+  # Stage iniziale: cron trigger
+  - id: "trigger"
+    step_type: "cron"
+    step_config:
+      schedule: "@every 10s"
+    dependencies: []
+
+  # Stage: fetch dati da API (response è già JSON)
+  - id: "fetch-api"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/users/1"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "trigger"
+
+  # Stage: parsifica manualmente una stringa JSON custom
+  # Questo è utile quando si ha una stringa JSON da elaborare
+  - id: "parse-custom-json"
+    step_type: "json"
+    step_config:
+      data: '{"status": "success", "count": 42, "items": ["item1", "item2"]}'
+    dependencies:
+      - "fetch-api"
+
+  # Stage finale: processa i risultati
+  - id: "process"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "parse-custom-json"
