@@ -197,9 +197,14 @@ func TestPipeline_CannotStartTwice(t *testing.T) {
 func TestPipeline_AddListener(t *testing.T) {
 	p := NewPipeline()
 
-	eventReceived := false
+	// Use channel for safe synchronization (no race condition)
+	eventReceived := make(chan bool, 1)
 	listener := models.EventListenerFunc(func(event models.Event) {
-		eventReceived = true
+		select {
+		case eventReceived <- true:
+		default:
+			// Channel already has value
+		}
 	})
 
 	p.AddListener(listener)
@@ -209,10 +214,11 @@ func TestPipeline_AddListener(t *testing.T) {
 		"stage_id": "test",
 	})
 
-	// Give it a moment to process
-	time.Sleep(50 * time.Millisecond)
-
-	if !eventReceived {
+	// Wait for event or timeout
+	select {
+	case <-eventReceived:
+		// Success
+	case <-time.After(1 * time.Second):
 		t.Error("Event listener did not receive event")
 	}
 }
