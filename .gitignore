@@ -1,1 +1,18 @@
 bin/
+
+# Test coverage files
+coverage.txt
+coverage.html
+*.out
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
