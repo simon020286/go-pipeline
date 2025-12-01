@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/simon020286/go-pipeline/models"
 	"github.com/simon020286/go-pipeline/builder"
+	"github.com/simon020286/go-pipeline/models"
 	_ "github.com/simon020286/go-pipeline/steps"
 )
 

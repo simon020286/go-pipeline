@@ -6,9 +6,9 @@ import (
 
 // ServiceDefinition represents the complete definition of an API service
 type ServiceDefinition struct {
-	Service    ServiceInfo              `yaml:"service"`
-	Defaults   ServiceDefaults          `yaml:"defaults"`
-	Operations map[string]OperationDef  `yaml:"operations"`
+	Service    ServiceInfo             `yaml:"service"`
+	Defaults   ServiceDefaults         `yaml:"defaults"`
+	Operations map[string]OperationDef `yaml:"operations"`
 }
 
 // ServiceInfo contains the basic service information

@@ -222,4 +222,3 @@ func TestPipeline_AddListener(t *testing.T) {
 		t.Error("Event listener did not receive event")
 	}
 }
-

@@ -9,9 +9,9 @@ import (
 
 // eventBus manages event distribution to registered listeners (private)
 type eventBus struct {
-	listeners   []models.EventListener
-	mutex       sync.RWMutex
-	pendingWg   sync.WaitGroup // Tracks events being processed
+	listeners []models.EventListener
+	mutex     sync.RWMutex
+	pendingWg sync.WaitGroup // Tracks events being processed
 }
 
 // newEventBus creates a new eventBus instance (private)
