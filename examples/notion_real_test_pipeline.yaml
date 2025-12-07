@@ -1,0 +1,55 @@
+name: "notion-real-api-test"
+description: "End-to-end test with real Notion API using structured body system"
+
+stages:
+  # Test 1: Query database with filter only (sorts omitted, page_size uses default 100)
+  - id: "query-with-filter"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      filter:
+        property: "Status"
+        select:
+          equals: "Done"
+    dependencies: []
+
+  # Test 2: Query with all parameters (filter, sorts, page_size)
+  - id: "query-with-all-params"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      filter:
+        property: "Priority"
+        select:
+          equals: "High"
+      sorts:
+        - property: "Created"
+          direction: "descending"
+      page_size: 50
+    dependencies:
+      - "query-with-filter"
+
+  # Test 3: Query with minimal params (only required database_id)
+  - id: "query-minimal"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+    dependencies:
+      - "query-with-all-params"
+
+  # Test 4: Query with start_cursor (pagination test)
+  - id: "query-with-cursor"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      page_size: 10
+    dependencies:
+      - "query-minimal"

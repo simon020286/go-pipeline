@@ -1,0 +1,85 @@
+name: "notion-create-page-test"
+description: "Test Notion create_page operation with conditional parent (database_id vs page_id)"
+
+stages:
+  # Test 1: Create a page in a database (uses database_id branch)
+  - id: "create-in-database"
+    step_type: "notion"
+    step_config:
+      operation: "create_page"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"  # This triggers the database_id conditional branch
+      properties:
+        Name:
+          title:
+            - type: "text"
+              text:
+                content: "Test Page Created via Pipeline"
+    dependencies: []
+
+  # Test 2: Create a page as child of another page (uses page_id branch)
+  # Uncomment this to test page_id conditional branch
+  # - id: "create-under-page"
+  #   step_type: "notion"
+  #   step_config:
+  #     operation: "create_page"
+  #     api_token: "YOUR_NOTION_API_TOKEN"
+  #     page_id: "YOUR_PARENT_PAGE_ID"  # This triggers the page_id conditional branch
+  #     properties:
+  #       title:
+  #         title:
+  #           - type: "text"
+  #             text:
+  #               content: "Child Page Created via Pipeline"
+  #   dependencies:
+  #     - "create-in-database"
+
+  # Test 3: Create page with optional children blocks
+  - id: "create-with-children"
+    step_type: "notion"
+    step_config:
+      operation: "create_page"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      properties:
+        Name:
+          title:
+            - type: "text"
+              text:
+                content: "Page with Content Blocks"
+      children:
+        - object: "block"
+          type: "paragraph"
+          paragraph:
+            rich_text:
+              - type: "text"
+                text:
+                  content: "This is the first paragraph."
+        - object: "block"
+          type: "heading_2"
+          heading_2:
+            rich_text:
+              - type: "text"
+                text:
+                  content: "Section Header"
+    dependencies:
+      - "create-in-database"
+
+  # Test 4: Create page with icon
+  - id: "create-with-icon"
+    step_type: "notion"
+    step_config:
+      operation: "create_page"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      properties:
+        Name:
+          title:
+            - type: "text"
+              text:
+                content: "Page with Icon"
+      icon:
+        type: "emoji"
+        emoji: "rocket"
+    dependencies:
+      - "create-with-children"

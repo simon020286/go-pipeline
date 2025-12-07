@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -20,6 +21,7 @@ type HTTPClientStep struct {
 	methodSpec   config.ValueSpec
 	headers      map[string]string
 	bodySpec     config.ValueSpec
+	contentType  string
 	responseType string
 }
 
@@ -59,40 +61,40 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 			}
 			method := fmt.Sprintf("%v", methodResolved)
 
-			// Risolvi body se presente
-			var bodyReader io.Reader = nil
-			if s.bodySpec != nil {
-				bodyData, err := s.bodySpec.Resolve(input)
-				if err != nil {
-					errorChan <- fmt.Errorf("failed to resolve body: %w", err)
-					return
-				}
-
-				// Serializza il body in JSON
-				bodyBytes, err := json.Marshal(bodyData)
-				if err != nil {
-					errorChan <- fmt.Errorf("failed to marshal body: %w", err)
-					return
-				}
-				bodyReader = bytes.NewReader(bodyBytes)
-			}
-
-			// Crea la richiesta HTTP
-			req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+		// Risolvi body se presente
+		var bodyReader io.Reader = nil
+		if s.bodySpec != nil {
+			bodyData, err := s.bodySpec.Resolve(input)
 			if err != nil {
-				errorChan <- fmt.Errorf("failed to create HTTP request: %w", err)
+				errorChan <- fmt.Errorf("failed to resolve body: %w", err)
 				return
 			}
 
-			// Aggiungi headers
-			for key, value := range s.headers {
-				req.Header.Set(key, value)
+			// Serializza il body in base al content-type
+			bodyBytes, err := serializeBody(bodyData, s.contentType)
+			if err != nil {
+				errorChan <- fmt.Errorf("failed to serialize body: %w", err)
+				return
 			}
+			bodyReader = bytes.NewReader(bodyBytes)
+		}
 
-			// Se c'è un body, imposta Content-Type di default a JSON se non già specificato
-			if bodyReader != nil && req.Header.Get("Content-Type") == "" {
-				req.Header.Set("Content-Type", "application/json")
-			}
+		// Crea la richiesta HTTP
+		req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+		if err != nil {
+			errorChan <- fmt.Errorf("failed to create HTTP request: %w", err)
+			return
+		}
+
+		// Aggiungi headers
+		for key, value := range s.headers {
+			req.Header.Set(key, value)
+		}
+
+		// Se c'è un body, imposta Content-Type dal campo contentType
+		if bodyReader != nil && s.contentType != "" {
+			req.Header.Set("Content-Type", s.contentType)
+		}
 
 			// Esegui la richiesta
 			client := &http.Client{
@@ -169,6 +171,25 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 	return outputChan, errorChan
 }
 
+// serializeBody serializza il body in base al content-type
+func serializeBody(body any, contentType string) ([]byte, error) {
+	switch contentType {
+	case "application/json", "":
+		// Default to JSON
+		return json.Marshal(body)
+	case "application/x-www-form-urlencoded":
+		// TODO: implement form-urlencoded serialization
+		// For now, fall back to JSON
+		return json.Marshal(body)
+	case "text/plain":
+		// Convert to string
+		return []byte(fmt.Sprintf("%v", body)), nil
+	default:
+		// For unknown content types, try JSON
+		return json.Marshal(body)
+	}
+}
+
 func init() {
 	builder.RegisterStepType("http_client", func(cfg map[string]any) (models.Step, error) {
 		urlRaw, ok := cfg["url"]
@@ -189,19 +210,24 @@ func init() {
 			}
 		}
 
-		responseType, ok := cfg["response"].(string)
-		if !ok {
-			responseType = "json" // Default to JSON
-		}
+	responseType, ok := cfg["response"].(string)
+	if !ok {
+		responseType = "json" // Default to JSON
+	}
 
-		bodyRaw := cfg["body"] // Body can be optional (nil)
+	contentType, ok := cfg["content_type"].(string)
+	if !ok {
+		contentType = "application/json" // Default to JSON
+	}
+
+	bodyRaw := cfg["body"] // Body can be optional (nil)
 
 		// Converti i valori in ValueSpec
 		var urlSpec config.ValueSpec
 		if vs, ok := urlRaw.(config.ValueSpec); ok {
 			urlSpec = vs
 		} else {
-			urlSpec = config.StaticValue{Value: urlRaw}
+			urlSpec = builder.ParseConfigValue(urlRaw)
 		}
 
 		var methodSpec config.ValueSpec
@@ -220,12 +246,13 @@ func init() {
 			}
 		}
 
-		return &HTTPClientStep{
-			urlSpec:      urlSpec,
-			methodSpec:   methodSpec,
-			headers:      headersMap,
-			bodySpec:     bodySpec,
-			responseType: responseType,
-		}, nil
+	return &HTTPClientStep{
+		urlSpec:      urlSpec,
+		methodSpec:   methodSpec,
+		headers:      headersMap,
+		bodySpec:     bodySpec,
+		contentType:  contentType,
+		responseType: responseType,
+	}, nil
 	})
 }

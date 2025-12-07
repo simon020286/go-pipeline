@@ -55,7 +55,7 @@ func RegisterDynamicAPIServices(serviceRegistry *ServiceRegistry) error {
 			valueContext := make(map[string]config.ValueSpec)
 			for k, v := range cfg {
 				if k != "operation" {
-					valueContext[k] = parseConfigValue(v)
+					valueContext[k] = ParseConfigValue(v)
 				}
 			}
 
@@ -75,38 +75,46 @@ func RegisterDynamicAPIServices(serviceRegistry *ServiceRegistry) error {
 				return nil, fmt.Errorf("failed to render headers: %w", err)
 			}
 
-			// Build config.ValueSpec for body if present
-			var bodySpec config.ValueSpec
-			if opDef.Body != "" {
-				// For now render the body as string
-				// TODO: could be a dynamic config.ValueSpec in the future
-				bodyRendered, err := renderTemplate(opDef.Body, valueContext)
-				if err != nil {
-					return nil, fmt.Errorf("failed to render body: %w", err)
-				}
-				bodySpec = config.StaticValue{Value: bodyRendered}
+		// Build config.ValueSpec for body if present using BodyResolver
+		var bodySpec config.ValueSpec
+		if opDef.Body != nil {
+			resolver := NewBodyResolver(serviceDef, opDef)
+			bodySpec, err = resolver.ResolveBody(valueContext)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve body: %w", err)
 			}
+		}
 
-			// Determine response type
-			responseType := opDef.ResponseType
-			if responseType == "" {
-				responseType = "json"
-			}
+		// Determine content-type (operation > service defaults > default "application/json")
+		contentType := opDef.ContentType
+		if contentType == "" {
+			contentType = serviceDef.Defaults.ContentType
+		}
+		if contentType == "" {
+			contentType = "application/json"
+		}
 
-			// Create config for http_client step
-			// Pass config.ValueSpec directly
-			httpConfig := map[string]any{
-				"url":      urlSpec,
-				"method":   methodSpec,
-				"headers":  headers,
-				"response": responseType,
-			}
-			if bodySpec != nil {
-				httpConfig["body"] = bodySpec
-			}
+		// Determine response type
+		responseType := opDef.ResponseType
+		if responseType == "" {
+			responseType = "json"
+		}
 
-			// Create HTTPClientStep using the registered factory
-			return CreateStep("http_client", httpConfig)
+		// Create config for http_client step
+		// Pass config.ValueSpec directly
+		httpConfig := map[string]any{
+			"url":          urlSpec,
+			"method":       methodSpec,
+			"headers":      headers,
+			"content_type": contentType,
+			"response":     responseType,
+		}
+		if bodySpec != nil {
+			httpConfig["body"] = bodySpec
+		}
+
+		// Create HTTPClientStep using the registered factory
+		return CreateStep("http_client", httpConfig)
 		})
 	}
 
@@ -373,7 +381,7 @@ func jsStringLiteral(s string) string {
 
 // parseConfigValue converts a configuration value to config.ValueSpec
 // Recognizes the "$js:" prefix for dynamic JavaScript values
-func parseConfigValue(v any) config.ValueSpec {
+func ParseConfigValue(v any) config.ValueSpec {
 	// If it's a string, check if it starts with $js:
 	if str, ok := v.(string); ok {
 		if strings.HasPrefix(str, "$js:") {
