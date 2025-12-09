@@ -398,7 +398,7 @@ func (br *BodyResolver) resolveBodyArray(arr []any, params map[string]config.Val
 // Implementa config.ValueSpec
 type StructuredBody struct {
 	Fields map[string]config.ValueSpec // Per oggetti
-	Array  []config.ValueSpec           // Per array
+	Array  []config.ValueSpec          // Per array
 }
 
 // IsStatic ritorna sempre false perché StructuredBody contiene almeno un valore dinamico

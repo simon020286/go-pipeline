@@ -75,46 +75,46 @@ func RegisterDynamicAPIServices(serviceRegistry *ServiceRegistry) error {
 				return nil, fmt.Errorf("failed to render headers: %w", err)
 			}
 
-		// Build config.ValueSpec for body if present using BodyResolver
-		var bodySpec config.ValueSpec
-		if opDef.Body != nil {
-			resolver := NewBodyResolver(serviceDef, opDef)
-			bodySpec, err = resolver.ResolveBody(valueContext)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve body: %w", err)
+			// Build config.ValueSpec for body if present using BodyResolver
+			var bodySpec config.ValueSpec
+			if opDef.Body != nil {
+				resolver := NewBodyResolver(serviceDef, opDef)
+				bodySpec, err = resolver.ResolveBody(valueContext)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve body: %w", err)
+				}
 			}
-		}
 
-		// Determine content-type (operation > service defaults > default "application/json")
-		contentType := opDef.ContentType
-		if contentType == "" {
-			contentType = serviceDef.Defaults.ContentType
-		}
-		if contentType == "" {
-			contentType = "application/json"
-		}
+			// Determine content-type (operation > service defaults > default "application/json")
+			contentType := opDef.ContentType
+			if contentType == "" {
+				contentType = serviceDef.Defaults.ContentType
+			}
+			if contentType == "" {
+				contentType = "application/json"
+			}
 
-		// Determine response type
-		responseType := opDef.ResponseType
-		if responseType == "" {
-			responseType = "json"
-		}
+			// Determine response type
+			responseType := opDef.ResponseType
+			if responseType == "" {
+				responseType = "json"
+			}
 
-		// Create config for http_client step
-		// Pass config.ValueSpec directly
-		httpConfig := map[string]any{
-			"url":          urlSpec,
-			"method":       methodSpec,
-			"headers":      headers,
-			"content_type": contentType,
-			"response":     responseType,
-		}
-		if bodySpec != nil {
-			httpConfig["body"] = bodySpec
-		}
+			// Create config for http_client step
+			// Pass config.ValueSpec directly
+			httpConfig := map[string]any{
+				"url":          urlSpec,
+				"method":       methodSpec,
+				"headers":      headers,
+				"content_type": contentType,
+				"response":     responseType,
+			}
+			if bodySpec != nil {
+				httpConfig["body"] = bodySpec
+			}
 
-		// Create HTTPClientStep using the registered factory
-		return CreateStep("http_client", httpConfig)
+			// Create HTTPClientStep using the registered factory
+			return CreateStep("http_client", httpConfig)
 		})
 	}
 

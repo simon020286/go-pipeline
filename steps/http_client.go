@@ -61,40 +61,40 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 			}
 			method := fmt.Sprintf("%v", methodResolved)
 
-		// Risolvi body se presente
-		var bodyReader io.Reader = nil
-		if s.bodySpec != nil {
-			bodyData, err := s.bodySpec.Resolve(input)
+			// Risolvi body se presente
+			var bodyReader io.Reader = nil
+			if s.bodySpec != nil {
+				bodyData, err := s.bodySpec.Resolve(input)
+				if err != nil {
+					errorChan <- fmt.Errorf("failed to resolve body: %w", err)
+					return
+				}
+
+				// Serializza il body in base al content-type
+				bodyBytes, err := serializeBody(bodyData, s.contentType)
+				if err != nil {
+					errorChan <- fmt.Errorf("failed to serialize body: %w", err)
+					return
+				}
+				bodyReader = bytes.NewReader(bodyBytes)
+			}
+
+			// Crea la richiesta HTTP
+			req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 			if err != nil {
-				errorChan <- fmt.Errorf("failed to resolve body: %w", err)
+				errorChan <- fmt.Errorf("failed to create HTTP request: %w", err)
 				return
 			}
 
-			// Serializza il body in base al content-type
-			bodyBytes, err := serializeBody(bodyData, s.contentType)
-			if err != nil {
-				errorChan <- fmt.Errorf("failed to serialize body: %w", err)
-				return
+			// Aggiungi headers
+			for key, value := range s.headers {
+				req.Header.Set(key, value)
 			}
-			bodyReader = bytes.NewReader(bodyBytes)
-		}
 
-		// Crea la richiesta HTTP
-		req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
-		if err != nil {
-			errorChan <- fmt.Errorf("failed to create HTTP request: %w", err)
-			return
-		}
-
-		// Aggiungi headers
-		for key, value := range s.headers {
-			req.Header.Set(key, value)
-		}
-
-		// Se c'è un body, imposta Content-Type dal campo contentType
-		if bodyReader != nil && s.contentType != "" {
-			req.Header.Set("Content-Type", s.contentType)
-		}
+			// Se c'è un body, imposta Content-Type dal campo contentType
+			if bodyReader != nil && s.contentType != "" {
+				req.Header.Set("Content-Type", s.contentType)
+			}
 
 			// Esegui la richiesta
 			client := &http.Client{
@@ -210,17 +210,17 @@ func init() {
 			}
 		}
 
-	responseType, ok := cfg["response"].(string)
-	if !ok {
-		responseType = "json" // Default to JSON
-	}
+		responseType, ok := cfg["response"].(string)
+		if !ok {
+			responseType = "json" // Default to JSON
+		}
 
-	contentType, ok := cfg["content_type"].(string)
-	if !ok {
-		contentType = "application/json" // Default to JSON
-	}
+		contentType, ok := cfg["content_type"].(string)
+		if !ok {
+			contentType = "application/json" // Default to JSON
+		}
 
-	bodyRaw := cfg["body"] // Body can be optional (nil)
+		bodyRaw := cfg["body"] // Body can be optional (nil)
 
 		// Converti i valori in ValueSpec
 		var urlSpec config.ValueSpec
@@ -246,13 +246,13 @@ func init() {
 			}
 		}
 
-	return &HTTPClientStep{
-		urlSpec:      urlSpec,
-		methodSpec:   methodSpec,
-		headers:      headersMap,
-		bodySpec:     bodySpec,
-		contentType:  contentType,
-		responseType: responseType,
-	}, nil
+		return &HTTPClientStep{
+			urlSpec:      urlSpec,
+			methodSpec:   methodSpec,
+			headers:      headersMap,
+			bodySpec:     bodySpec,
+			contentType:  contentType,
+			responseType: responseType,
+		}, nil
 	})
 }

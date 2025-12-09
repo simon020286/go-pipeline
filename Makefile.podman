@@ -54,3 +54,8 @@ podman-clean:
 	rm -f examples/test_runner/test_runner
 	rm -f examples/webhook/webhook
 	rm -f examples/webhook_oneshot/webhook_oneshot
+
+# Run golint
+podman-golint:
+	@echo "Run lint"
+	$(PORDMAN_RUN) go fmt -l ./...

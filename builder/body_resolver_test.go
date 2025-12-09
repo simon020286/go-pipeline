@@ -244,7 +244,7 @@ func TestBodyResolver_ResolveBodyMap_OptionalParamMissing(t *testing.T) {
 func TestBodyResolver_ResolveBodyMap_NestedObject(t *testing.T) {
 	opDef := &config.OperationDef{
 		Params: map[string]config.ParameterDef{
-			"filter": {Required: true},
+			"filter":    {Required: true},
 			"page_size": {Default: 100},
 		},
 	}
@@ -295,8 +295,8 @@ func TestBodyResolver_ResolveBody_CompleteFlow(t *testing.T) {
 
 	opDef := &config.OperationDef{
 		Params: map[string]config.ParameterDef{
-			"filter": {Optional: true},
-			"sorts":  {Optional: true},
+			"filter":    {Optional: true},
+			"sorts":     {Optional: true},
 			"page_size": {Optional: true},
 		},
 		Body: map[string]any{

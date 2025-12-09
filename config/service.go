@@ -60,38 +60,38 @@ func (p ParameterDef) IsOptional() bool {
 // ConditionalDef defines a conditional structure in body
 type ConditionalDef struct {
 	If   ConditionDef `yaml:"$if"`   // condition to evaluate
-	Then any         `yaml:"$then"` // value if condition is true
-	Else any         `yaml:"$else"` // value if condition is false
+	Then any          `yaml:"$then"` // value if condition is true
+	Else any          `yaml:"$else"` // value if condition is false
 }
 
 // ConditionDef defines a condition for conditional logic
 type ConditionDef struct {
-	Param     string `yaml:"$param"`     // parameter name to check
-	Exists    bool   `yaml:"$exists"`    // check if parameter exists and is not null
-	Equals    any    `yaml:"$equals"`    // check if parameter equals this value
+	Param     string `yaml:"$param"`      // parameter name to check
+	Exists    bool   `yaml:"$exists"`     // check if parameter exists and is not null
+	Equals    any    `yaml:"$equals"`     // check if parameter equals this value
 	NotEquals any    `yaml:"$not_equals"` // check if parameter does not equal this value
-	NotEmpty  bool   `yaml:"$not_empty"` // check if parameter is not empty (string, array, object)
-	IsEmpty   bool   `yaml:"$is_empty"`  // check if parameter is empty (string, array, object)
+	NotEmpty  bool   `yaml:"$not_empty"`  // check if parameter is not empty (string, array, object)
+	IsEmpty   bool   `yaml:"$is_empty"`   // check if parameter is empty (string, array, object)
 }
 
 // ArrayTemplateDef defines an array template structure
 type ArrayTemplateDef struct {
-	ForEach  string `yaml:"$for_each"`  // parameter name containing array
-	Template any    `yaml:"$template"`  // template for each array item
-	ArrayMap  *ArrayMapDef `yaml:"$array_map"` // alternative: map array items
+	ForEach  string       `yaml:"$for_each"`  // parameter name containing array
+	Template any          `yaml:"$template"`  // template for each array item
+	ArrayMap *ArrayMapDef `yaml:"$array_map"` // alternative: map array items
 }
 
 // ArrayMapDef defines mapping for array items
 type ArrayMapDef struct {
-	Param string `yaml:"$param"`     // parameter name containing array
-	Transform any `yaml:"$transform"` // transformation to apply to each item
+	Param     string `yaml:"$param"`     // parameter name containing array
+	Transform any    `yaml:"$transform"` // transformation to apply to each item
 }
 
 // TransformDef defines value transformations
 type TransformDef struct {
 	Template string         `yaml:"$template"` // template string with {value} placeholder
 	Function string         `yaml:"$function"` // built-in function name
-	Args    map[string]any `yaml:"$args"`    // function arguments
+	Args     map[string]any `yaml:"$args"`     // function arguments
 }
 
 // OperationDef defines a single API operation
