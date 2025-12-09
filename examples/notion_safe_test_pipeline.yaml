@@ -1,0 +1,38 @@
+name: "notion-safe-api-test"
+description: "Safe end-to-end test with real Notion API - first discover database properties"
+
+stages:
+  # Test 1: Query database with minimal params (no filter, no sorts) to discover properties
+  - id: "query-discover"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      page_size: 5  # Limit to 5 results to see structure
+    dependencies: []
+
+  # Test 2: Query with page_size override
+  - id: "query-with-page-size"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      page_size: 10  # Override global default
+    dependencies:
+      - "query-discover"
+
+  # Test 3: Query with sorts (using a common property like "Created time")
+  - id: "query-with-sorts"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "YOUR_NOTION_API_TOKEN"
+      database_id: "YOUR_DATABASE_ID"
+      sorts:
+        - property: "Created time"
+          direction: "descending"
+      page_size: 3
+    dependencies:
+      - "query-with-page-size"

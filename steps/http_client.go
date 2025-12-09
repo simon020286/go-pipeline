@@ -6,10 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -20,6 +21,7 @@ type HTTPClientStep struct {
 	methodSpec   config.ValueSpec
 	headers      map[string]string
 	bodySpec     config.ValueSpec
+	contentType  string
 	responseType string
 }
 
@@ -68,10 +70,10 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 					return
 				}
 
-				// Serializza il body in JSON
-				bodyBytes, err := json.Marshal(bodyData)
+				// Serializza il body in base al content-type
+				bodyBytes, err := serializeBody(bodyData, s.contentType)
 				if err != nil {
-					errorChan <- fmt.Errorf("failed to marshal body: %w", err)
+					errorChan <- fmt.Errorf("failed to serialize body: %w", err)
 					return
 				}
 				bodyReader = bytes.NewReader(bodyBytes)
@@ -89,9 +91,9 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 				req.Header.Set(key, value)
 			}
 
-			// Se c'è un body, imposta Content-Type di default a JSON se non già specificato
-			if bodyReader != nil && req.Header.Get("Content-Type") == "" {
-				req.Header.Set("Content-Type", "application/json")
+			// Se c'è un body, imposta Content-Type dal campo contentType
+			if bodyReader != nil && s.contentType != "" {
+				req.Header.Set("Content-Type", s.contentType)
 			}
 
 			// Esegui la richiesta
@@ -169,6 +171,25 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 	return outputChan, errorChan
 }
 
+// serializeBody serializza il body in base al content-type
+func serializeBody(body any, contentType string) ([]byte, error) {
+	switch contentType {
+	case "application/json", "":
+		// Default to JSON
+		return json.Marshal(body)
+	case "application/x-www-form-urlencoded":
+		// TODO: implement form-urlencoded serialization
+		// For now, fall back to JSON
+		return json.Marshal(body)
+	case "text/plain":
+		// Convert to string
+		return []byte(fmt.Sprintf("%v", body)), nil
+	default:
+		// For unknown content types, try JSON
+		return json.Marshal(body)
+	}
+}
+
 func init() {
 	builder.RegisterStepType("http_client", func(cfg map[string]any) (models.Step, error) {
 		urlRaw, ok := cfg["url"]
@@ -194,6 +215,11 @@ func init() {
 			responseType = "json" // Default to JSON
 		}
 
+		contentType, ok := cfg["content_type"].(string)
+		if !ok {
+			contentType = "application/json" // Default to JSON
+		}
+
 		bodyRaw := cfg["body"] // Body can be optional (nil)
 
 		// Converti i valori in ValueSpec
@@ -201,7 +227,7 @@ func init() {
 		if vs, ok := urlRaw.(config.ValueSpec); ok {
 			urlSpec = vs
 		} else {
-			urlSpec = config.StaticValue{Value: urlRaw}
+			urlSpec = builder.ParseConfigValue(urlRaw)
 		}
 
 		var methodSpec config.ValueSpec
@@ -225,6 +251,7 @@ func init() {
 			methodSpec:   methodSpec,
 			headers:      headersMap,
 			bodySpec:     bodySpec,
+			contentType:  contentType,
 			responseType: responseType,
 		}, nil
 	})

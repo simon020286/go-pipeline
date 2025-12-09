@@ -1,0 +1,61 @@
+# Makefile.podman - Podman wrapper for build and test
+# Use this if you don't have Go installed on the host machine
+
+# Podman configuration
+PODMAN_IMAGE := golang:1.25.3-trixie
+PODMAN_RUN := podman run --rm -v $(PWD):/workspace:z -w /workspace $(PODMAN_IMAGE)
+
+.PHONY: podman-help podman-test podman-build podman-test-verbose podman-test-coverage podman-lint podman-clean
+
+# Default target
+podman-help:
+	@echo "Available Podman targets:"
+	@echo "  podman-test          - Run all tests in Podman container"
+	@echo "  podman-test-verbose  - Run tests with verbose output in Podman container"
+	@echo "  podman-test-coverage - Run tests with coverage report in Podman container"
+	@echo "  podman-build         - Build all packages in Podman container"
+	@echo "  podman-lint          - Run golangci-lint in Podman container"
+	@echo "  podman-clean         - Clean build artifacts"
+
+# Run all tests
+podman-test:
+	@echo "Running tests in Podman container..."
+	$(PODMAN_RUN) go test ./...
+
+# Run tests with verbose output
+podman-test-verbose:
+	@echo "Running tests (verbose) in Podman container..."
+	$(PODMAN_RUN) go test -v ./...
+
+# Run tests with coverage
+podman-test-coverage:
+	@echo "Running tests with coverage in Podman container..."
+	$(PODMAN_RUN) sh -c "go test -v -race -coverprofile=coverage.txt -covermode=atomic ./... && go tool cover -html=coverage.txt -o coverage.html"
+	@echo "Coverage report generated: coverage.html"
+
+# Build all packages
+podman-build:
+	@echo "Building packages in Podman container..."
+	$(PODMAN_RUN) go build ./...
+	@echo "Building examples..."
+	$(PODMAN_RUN) go build ./examples/test_runner
+	$(PODMAN_RUN) go build ./examples/webhook
+	$(PODMAN_RUN) go build ./examples/webhook_oneshot
+
+# Run linter
+podman-lint:
+	@echo "Running linter in Podman container..."
+	$(PODMAN_RUN) sh -c "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && golangci-lint run --timeout=5m"
+
+# Clean build artifacts
+podman-clean:
+	@echo "Cleaning..."
+	rm -f coverage.txt coverage.html
+	rm -f examples/test_runner/test_runner
+	rm -f examples/webhook/webhook
+	rm -f examples/webhook_oneshot/webhook_oneshot
+
+# Run golint
+podman-golint:
+	@echo "Run lint"
+	$(PORDMAN_RUN) go fmt -l ./...

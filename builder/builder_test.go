@@ -8,7 +8,7 @@ import (
 )
 
 func TestParseConfigValue_StaticString(t *testing.T) {
-	result := parseConfigValue("hello")
+	result := ParseConfigValue("hello")
 
 	if !result.IsStatic() {
 		t.Error("Expected static value")
@@ -25,7 +25,7 @@ func TestParseConfigValue_StaticString(t *testing.T) {
 }
 
 func TestParseConfigValue_StaticNumber(t *testing.T) {
-	result := parseConfigValue(42)
+	result := ParseConfigValue(42)
 
 	if !result.IsStatic() {
 		t.Error("Expected static value")
@@ -42,7 +42,7 @@ func TestParseConfigValue_StaticNumber(t *testing.T) {
 }
 
 func TestParseConfigValue_DynamicJS(t *testing.T) {
-	result := parseConfigValue("$js: ctx.step1.value")
+	result := ParseConfigValue("$js: ctx.step1.value")
 
 	if result.IsStatic() {
 		t.Error("Expected dynamic value")
@@ -63,7 +63,7 @@ func TestParseConfigValue_DynamicJS(t *testing.T) {
 }
 
 func TestParseConfigValue_DynamicJSWithSpaces(t *testing.T) {
-	result := parseConfigValue("$js:   ctx.step1 + 10  ")
+	result := ParseConfigValue("$js:   ctx.step1 + 10  ")
 
 	dv, ok := result.GetDynamicExpression()
 	if !ok {
@@ -77,7 +77,7 @@ func TestParseConfigValue_DynamicJSWithSpaces(t *testing.T) {
 }
 
 func TestParseConfigValue_Bool(t *testing.T) {
-	result := parseConfigValue(true)
+	result := ParseConfigValue(true)
 
 	if !result.IsStatic() {
 		t.Error("Expected static value")

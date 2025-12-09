@@ -8,6 +8,7 @@ defaults:
   headers:
     Content-Type: "application/json"
   timeout: 30
+  content_type: "application/json"
 
 operations:
   get_posts:
@@ -28,25 +29,88 @@ operations:
     description: "Create a new post"
     method: "POST"
     path: "/posts"
-    body: |
-      {
-        "title": "{{.title}}",
-        "body": "{{.body}}",
-        "userId": {{.user_id}}
-      }
+    
+    params:
+      title:
+        $required: true
+        $type: string
+        $description: "Post title"
+      body:
+        $required: true
+        $type: string
+        $description: "Post body/content"
+      userId:
+        $required: true
+        $type: int
+        $description: "User ID of the post author"
+    
+    body:
+      title:
+        $param: title
+      body:
+        $param: body
+      userId:
+        $param: userId
+    
     response_type: "json"
 
   update_post:
     description: "Update an existing post"
     method: "PUT"
     path: "/posts/{{.post_id}}"
-    body: |
-      {
-        "id": {{.post_id}},
-        "title": "{{.title}}",
-        "body": "{{.body}}",
-        "userId": {{.user_id}}
-      }
+    
+    params:
+      post_id:
+        $required: true
+        $type: int
+        $description: "Post ID to update"
+      title:
+        $required: true
+        $type: string
+        $description: "Updated title"
+      body:
+        $required: true
+        $type: string
+        $description: "Updated body/content"
+      userId:
+        $required: true
+        $type: int
+        $description: "User ID"
+    
+    body:
+      id:
+        $param: post_id
+      title:
+        $param: title
+      body:
+        $param: body
+      userId:
+        $param: userId
+    
+    response_type: "json"
+
+  patch_post:
+    description: "Partially update a post"
+    method: "PATCH"
+    path: "/posts/{{.post_id}}"
+    
+    params:
+      post_id:
+        $required: true
+        $type: int
+      title:
+        $optional: true
+        $type: string
+      body:
+        $optional: true
+        $type: string
+    
+    body:
+      title:
+        $param: title
+      body:
+        $param: body
+    
     response_type: "json"
 
   delete_post:

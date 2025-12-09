@@ -1,0 +1,52 @@
+name: "jsonplaceholder-e2e-test"
+description: "End-to-end test of new structured body system with JSONPlaceholder API"
+
+stages:
+  # Test 1: GET request (no body)
+  - id: "get-users"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "get_users"
+    dependencies: []
+
+  # Test 2: POST request with all required params (structured body)
+  - id: "create-post"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "create_post"
+      title: "Test Post from Go Pipeline"
+      body: "This is a test post created using the new structured body system"
+      userId: 1
+    dependencies:
+      - "get-users"
+
+  # Test 3: PATCH request with optional params (test omission)
+  - id: "patch-post-title-only"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "patch_post"
+      post_id: 1
+      title: "Updated Title Only"
+      # body is optional and not provided - should be omitted from HTTP body
+    dependencies:
+      - "create-post"
+
+  # Test 4: PATCH request with all optional params
+  - id: "patch-post-all"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "patch_post"
+      post_id: 1
+      title: "Fully Updated Title"
+      body: "Fully updated body content"
+    dependencies:
+      - "patch-post-title-only"
+
+  # Test 5: GET specific post
+  - id: "get-post"
+    step_type: "jsonplaceholder"
+    step_config:
+      operation: "get_post"
+      post_id: 1
+    dependencies:
+      - "patch-post-all"

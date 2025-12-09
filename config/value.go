@@ -111,8 +111,10 @@ func (d DynamicValue) resolveJS(state *models.StepInput) (any, error) {
 		return nil, fmt.Errorf("failed to set context: %w", err)
 	}
 
+	wrappedCode := "(function() {\n return " + d.Expression + "\n})()"
+
 	// Execute the expression
-	result, err := runtime.RunString(d.Expression)
+	result, err := runtime.RunString(wrappedCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute JS expression '%s': %w", d.Expression, err)
 	}

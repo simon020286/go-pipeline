@@ -13,8 +13,58 @@ defaults:
     header: "Authorization"
     value: "Bearer {{.api_token}}"
   timeout: 30
+  content_type: "application/json"
+
+# Global parameters shared across operations
+global_params:
+  page_size:
+    $default: 100
+    $type: int
+    $description: "Number of results per page"
 
 operations:
+  query_database:
+    description: "Query a database"
+    method: "POST"
+    path: "/databases/{{.database_id}}/query"
+    
+    # Parameters for this operation
+    params:
+      database_id:
+        $required: true
+        $type: string
+        $description: "Database ID to query"
+      filter:
+        $optional: true
+        $type: object
+        $description: "Filter criteria for the database query"
+      sorts:
+        $optional: true
+        $type: array
+        $description: "Sort order for results"
+      page_size:
+        $optional: true
+        $type: int
+        $description: "Number of results (overrides global default)"
+      start_cursor:
+        $optional: true
+        $type: string
+        $description: "Pagination cursor for next page"
+    
+    # Structured body definition
+    body:
+      filter:
+        $param: filter
+      sorts:
+        $param: sorts
+      page_size:
+        $param: page_size
+      start_cursor:
+        $param: start_cursor
+    
+    response_type: "json"
+
+  # Keeping other operations with old format for now (will be migrated later)
   get_page:
     description: "Retrieve a page by ID"
     method: "GET"
@@ -25,11 +75,55 @@ operations:
     description: "Create a new page in a database or as a child of another page"
     method: "POST"
     path: "/pages"
-    body: |
-      {
-        "parent": {{.parent}},
-        "properties": {{.properties}}
-      }
+    
+    params:
+      database_id:
+        $optional: true
+        $type: string
+        $description: "Parent database ID (mutually exclusive with page_id)"
+      page_id:
+        $optional: true
+        $type: string
+        $description: "Parent page ID (mutually exclusive with database_id)"
+      properties:
+        $required: true
+        $type: object
+        $description: "Page properties (title, etc.)"
+      children:
+        $optional: true
+        $type: array
+        $description: "Block children to add to the page"
+      icon:
+        $optional: true
+        $type: object
+        $description: "Page icon (emoji or external URL)"
+      cover:
+        $optional: true
+        $type: object
+        $description: "Page cover image"
+    
+    body:
+      parent:
+        $if:
+          $param: database_id
+          $exists: true
+        $then:
+          type: "database_id"
+          database_id:
+            $param: database_id
+        $else:
+          type: "page_id"
+          page_id:
+            $param: page_id
+      properties:
+        $param: properties
+      children:
+        $param: children
+      icon:
+        $param: icon
+      cover:
+        $param: cover
+    
     response_type: "json"
 
   update_page:
@@ -39,18 +133,6 @@ operations:
     body: |
       {
         "properties": {{.properties}}
-      }
-    response_type: "json"
-
-  query_database:
-    description: "Query a database"
-    method: "POST"
-    path: "/databases/{{.database_id}}/query"
-    body: |
-      {
-        "filter": {{.filter}},
-        "sorts": {{.sorts}},
-        "page_size": {{.page_size}}
       }
     response_type: "json"
 

@@ -1,0 +1,44 @@
+name: "notion-query-database-test"
+description: "Test the new structured body format for Notion query_database operation"
+
+stages:
+  # Test 1: Query with filter only (sorts omitted, page_size uses default)
+  - id: "query-with-filter"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "secret_test_token"  # Replace with actual token for real test
+      database_id: "test_database_id_123"
+      filter:
+        property: "Status"
+        select:
+          equals: "Done"
+    dependencies: []
+
+  # Test 2: Query with all parameters
+  - id: "query-with-all-params"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "secret_test_token"
+      database_id: "test_database_id_456"
+      filter:
+        property: "Priority"
+        select:
+          equals: "High"
+      sorts:
+        - property: "Created"
+          direction: "descending"
+      page_size: 50
+    dependencies:
+      - "query-with-filter"
+
+  # Test 3: Query with minimal params (only required database_id)
+  - id: "query-minimal"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "secret_test_token"
+      database_id: "test_database_id_789"
+    dependencies:
+      - "query-with-all-params"
