@@ -1,0 +1,65 @@
+name: "notion-centralized-config"
+description: "Example showing how to centralize Notion API configuration (solves API key repetition problem)"
+
+# Centralized configuration - define once, use everywhere!
+variables:
+  # Common database IDs
+  tasks_db: "test_database_id_123"
+  projects_db: "test_database_id_456"
+  notes_db: "test_database_id_789"
+
+secrets:
+  # Single definition of Notion API token
+  # In production: notion_token: "$env:NOTION_API_KEY"
+  notion_token: "secret_test_token"
+
+stages:
+  # Query 1: Tasks database
+  - id: "query_tasks"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      # Reuse the same token - no repetition!
+      api_token: "$secret:notion_token"
+      database_id: "$var:tasks_db"
+      filter:
+        property: "Status"
+        select:
+          equals: "Done"
+    dependencies: []
+
+  # Query 2: Projects database
+  - id: "query_projects"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      # Same token, different database - clean and DRY!
+      api_token: "$secret:notion_token"
+      database_id: "$var:projects_db"
+      filter:
+        property: "Priority"
+        select:
+          equals: "High"
+      sorts:
+        - property: "Created"
+          direction: "descending"
+      page_size: 50
+    dependencies:
+      - "query_tasks"
+
+  # Query 3: Notes database
+  - id: "query_notes"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      # Third usage - still just one place to update the token!
+      api_token: "$secret:notion_token"
+      database_id: "$var:notes_db"
+    dependencies:
+      - "query_projects"
+
+# Benefits:
+# 1. Change the API token in ONE place instead of three
+# 2. Easier to switch to environment variable: just change one line
+# 3. Database IDs are also centralized - easy to manage
+# 4. Secrets are masked in logs for security

@@ -1,0 +1,33 @@
+name: "environment-variables-example"
+description: "Demonstrates using environment variables for secrets and configuration"
+
+# Global variables from environment
+variables:
+  # You can use $env: to read environment variables
+  # Example: Set before running: export BASE_URL=https://api.example.com
+  base_url: "https://jsonplaceholder.typicode.com"  # Fallback to hardcoded if not using $env:
+
+# Secrets from environment variables (RECOMMENDED for production)
+secrets:
+  # These would read from environment variables:
+  # export API_KEY=your-secret-key
+  # export AUTH_TOKEN=your-auth-token
+
+  # For this example, we use hardcoded values
+  # In production, replace with: api_key: "$env:API_KEY"
+  api_key: "demo-key-123"
+
+  # Example of using $env: (will fail if not set)
+  # auth_token: "$env:AUTH_TOKEN"
+
+stages:
+  - id: "secure_api_call"
+    step_type: "http_client"
+    step_config:
+      url: "$js: $vars.base_url + '/posts/1'"
+      method: "GET"
+      headers:
+        # Secrets are automatically masked in logs (shown as ***)
+        X-API-Key: "$secret:api_key"
+      response: "json"
+    dependencies: []

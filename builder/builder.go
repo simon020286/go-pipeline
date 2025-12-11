@@ -17,7 +17,61 @@ func CreateStep(stepType string, stepConfig map[string]any) (models.Step, error)
 	if err != nil {
 		return nil, err
 	}
-	return factory(stepConfig)
+
+	// Pre-process all configuration values to convert special prefixes
+	// ($var:, $secret:, $env:, $js:) into appropriate ValueSpec types
+	processedConfig := preprocessStepConfig(stepConfig)
+
+	return factory(processedConfig)
+}
+
+// preprocessStepConfig recursively processes configuration values,
+// converting strings with special prefixes into ValueSpec types
+func preprocessStepConfig(config map[string]any) map[string]any {
+	result := make(map[string]any)
+
+	for key, value := range config {
+		result[key] = preprocessValue(value)
+	}
+
+	return result
+}
+
+// preprocessValue converts a single value, handling nested structures
+func preprocessValue(value any) any {
+	// If already a ValueSpec, return as-is
+	if _, ok := value.(config.ValueSpec); ok {
+		return value
+	}
+
+	switch v := value.(type) {
+	case string:
+		// Only convert strings with special prefixes to ValueSpec
+		// Keep normal strings as-is for backward compatibility
+		if strings.HasPrefix(v, "$js:") || strings.HasPrefix(v, "$var:") ||
+			strings.HasPrefix(v, "$secret:") || strings.HasPrefix(v, "$env:") {
+			return ParseConfigValue(v)
+		}
+		// Return normal strings as-is
+		return v
+
+	case map[string]any:
+		// Recursively process maps
+		return preprocessStepConfig(v)
+
+	case []any:
+		// Process array elements
+		result := make([]any, len(v))
+		for i, item := range v {
+			result[i] = preprocessValue(item)
+		}
+		return result
+
+	default:
+		// Return other types (numbers, booleans, nil) as-is
+		// They will be wrapped in StaticValue by the step factory if needed
+		return v
+	}
 }
 
 // GenerateEventID generates a unique ID for an event
@@ -380,18 +434,43 @@ func jsStringLiteral(s string) string {
 }
 
 // parseConfigValue converts a configuration value to config.ValueSpec
-// Recognizes the "$js:" prefix for dynamic JavaScript values
+// Recognizes special prefixes:
+// - "$js:" for dynamic JavaScript expressions
+// - "$var:" for global variable references
+// - "$secret:" for global secret references
+// - "$env:" for environment variable references
 func ParseConfigValue(v any) config.ValueSpec {
-	// If it's a string, check if it starts with $js:
+	// If it's a string, check for special prefixes
 	if str, ok := v.(string); ok {
+		// Check for $js: prefix (dynamic JavaScript expression)
 		if strings.HasPrefix(str, "$js:") {
-			// Remove prefix and create a config.DynamicValue
 			expr := strings.TrimPrefix(str, "$js:")
 			expr = strings.TrimSpace(expr)
 			return config.DynamicValue{
 				Language:   "js",
 				Expression: expr,
 			}
+		}
+
+		// Check for $var: prefix (global variable reference)
+		if strings.HasPrefix(str, "$var:") {
+			varName := strings.TrimPrefix(str, "$var:")
+			varName = strings.TrimSpace(varName)
+			return config.VariableReference{Name: varName}
+		}
+
+		// Check for $secret: prefix (global secret reference)
+		if strings.HasPrefix(str, "$secret:") {
+			secretName := strings.TrimPrefix(str, "$secret:")
+			secretName = strings.TrimSpace(secretName)
+			return config.SecretReference{Name: secretName}
+		}
+
+		// Check for $env: prefix (environment variable reference)
+		if strings.HasPrefix(str, "$env:") {
+			envName := strings.TrimPrefix(str, "$env:")
+			envName = strings.TrimSpace(envName)
+			return config.EnvReference{Name: envName}
 		}
 	}
 

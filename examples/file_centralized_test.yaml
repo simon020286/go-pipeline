@@ -1,0 +1,36 @@
+name: "file-centralized-test"
+description: "Test centralized configuration with file reading"
+
+variables:
+  data_file: "examples/test_data.json"
+  item_index: 0
+
+stages:
+  - id: "read_data"
+    step_type: "file"
+    step_config:
+      # Use variable for file path
+      path: "$var:data_file"
+    dependencies: []
+
+  - id: "parse_json"
+    step_type: "json"
+    step_config:
+      data: "$js: ctx.read_data"
+    dependencies:
+      - "read_data"
+
+  - id: "process_first_item"
+    step_type: "js"
+    step_config:
+      # Access variable in JavaScript
+      code: |
+        const items = ctx.parse_json;
+        const index = $vars.item_index;
+        const item = items[index];
+        return {
+          message: "Processing item: " + item.name,
+          item: item
+        };
+    dependencies:
+      - "parse_json"

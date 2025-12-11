@@ -57,6 +57,10 @@ type Pipeline struct {
 
 	// Event handling (private)
 	eventBus *eventBus
+
+	// Global configuration
+	globalVariables map[string]any // Global variables accessible to all stages
+	globalSecrets   map[string]any // Global secrets accessible to all stages
 }
 
 // StageBuilder allows configuring a stage with fluent API
@@ -100,6 +104,16 @@ func NewPipeline() *Pipeline {
 // AddListener adds a listener to receive events from the pipeline
 func (p *Pipeline) AddListener(listener models.EventListener) {
 	p.eventBus.addListener(listener)
+}
+
+// SetGlobalVariables sets the global variables accessible to all stages
+func (p *Pipeline) SetGlobalVariables(variables map[string]any) {
+	p.globalVariables = variables
+}
+
+// SetGlobalSecrets sets the global secrets accessible to all stages
+func (p *Pipeline) SetGlobalSecrets(secrets map[string]any) {
+	p.globalSecrets = secrets
 }
 
 // Start avvia la pipeline in background (non bloccante)
@@ -392,9 +406,11 @@ func (p *Pipeline) createInputChannelV2(ctx context.Context, stageID string, con
 		if len(stage.dependencyRefs) == 0 {
 			select {
 			case inputChan <- &models.StepInput{
-				Data:      make(map[string]map[string]*models.Data),
-				EventID:   builder.GenerateEventID(),
-				Timestamp: time.Now(),
+				Data:            make(map[string]map[string]*models.Data),
+				EventID:         builder.GenerateEventID(),
+				Timestamp:       time.Now(),
+				GlobalVariables: p.globalVariables,
+				GlobalSecrets:   p.globalSecrets,
 			}:
 			case <-ctx.Done():
 			}
@@ -441,9 +457,11 @@ func (p *Pipeline) createInputChannelV2(ctx context.Context, stageID string, con
 			if len(data) > 0 {
 				select {
 				case inputChan <- &models.StepInput{
-					Data:      data,
-					EventID:   eventID,
-					Timestamp: time.Now(),
+					Data:            data,
+					EventID:         eventID,
+					Timestamp:       time.Now(),
+					GlobalVariables: p.globalVariables,
+					GlobalSecrets:   p.globalSecrets,
 				}:
 				case <-ctx.Done():
 					return

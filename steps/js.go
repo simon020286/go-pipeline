@@ -65,6 +65,21 @@ func (s *JsStep) Run(ctx context.Context, inputs <-chan *models.StepInput) (<-ch
 				return
 			}
 
+			// Set global variables and secrets in the JavaScript runtime
+			if input.GlobalVariables != nil {
+				if err := runtime.Set("$vars", input.GlobalVariables); err != nil {
+					errorChan <- fmt.Errorf("failed to set global variables in JavaScript runtime: %w", err)
+					return
+				}
+			}
+
+			if input.GlobalSecrets != nil {
+				if err := runtime.Set("$secrets", input.GlobalSecrets); err != nil {
+					errorChan <- fmt.Errorf("failed to set global secrets in JavaScript runtime: %w", err)
+					return
+				}
+			}
+
 			// Wrap the code in an anonymous function to allow return usage
 			// The user can write: return { key: "value" };
 			// It gets transformed to: (function() { return { key: "value" }; })()

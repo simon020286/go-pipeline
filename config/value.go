@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/dop251/goja"
 	"github.com/simon020286/go-pipeline/models"
@@ -111,6 +112,19 @@ func (d DynamicValue) resolveJS(state *models.StepInput) (any, error) {
 		return nil, fmt.Errorf("failed to set context: %w", err)
 	}
 
+	// Set global variables and secrets in the JS runtime
+	if state.GlobalVariables != nil {
+		if err := runtime.Set("$vars", state.GlobalVariables); err != nil {
+			return nil, fmt.Errorf("failed to set global variables: %w", err)
+		}
+	}
+
+	if state.GlobalSecrets != nil {
+		if err := runtime.Set("$secrets", state.GlobalSecrets); err != nil {
+			return nil, fmt.Errorf("failed to set global secrets: %w", err)
+		}
+	}
+
 	wrappedCode := "(function() {\n return " + d.Expression + "\n})()"
 
 	// Execute the expression
@@ -143,4 +157,95 @@ func ExtractStaticValues(values map[string]ValueSpec) map[string]any {
 		}
 	}
 	return result
+}
+
+// VariableReference represents a reference to a global pipeline variable ($var:name)
+type VariableReference struct {
+	Name string
+}
+
+func (v VariableReference) IsStatic() bool {
+	return false
+}
+
+func (v VariableReference) GetStaticValue() (any, bool) {
+	return nil, false
+}
+
+func (v VariableReference) GetDynamicExpression() (DynamicValue, bool) {
+	return DynamicValue{}, false
+}
+
+func (v VariableReference) Resolve(state *models.StepInput) (any, error) {
+	if state.GlobalVariables == nil {
+		return nil, fmt.Errorf("variable '%s' not found: no global variables defined", v.Name)
+	}
+
+	value, exists := state.GlobalVariables[v.Name]
+	if !exists {
+		return nil, fmt.Errorf("variable '%s' not found in global variables", v.Name)
+	}
+
+	return value, nil
+}
+
+// SecretReference represents a reference to a global pipeline secret ($secret:name)
+type SecretReference struct {
+	Name string
+}
+
+func (s SecretReference) IsStatic() bool {
+	return false
+}
+
+func (s SecretReference) GetStaticValue() (any, bool) {
+	return nil, false
+}
+
+func (s SecretReference) GetDynamicExpression() (DynamicValue, bool) {
+	return DynamicValue{}, false
+}
+
+func (s SecretReference) Resolve(state *models.StepInput) (any, error) {
+	if state.GlobalSecrets == nil {
+		return nil, fmt.Errorf("secret '%s' not found: no global secrets defined", s.Name)
+	}
+
+	value, exists := state.GlobalSecrets[s.Name]
+	if !exists {
+		return nil, fmt.Errorf("secret '%s' not found in global secrets", s.Name)
+	}
+
+	return value, nil
+}
+
+// String returns a masked representation of the secret for logging
+func (s SecretReference) String() string {
+	return fmt.Sprintf("$secret:%s=***", s.Name)
+}
+
+// EnvReference represents a reference to an environment variable ($env:NAME)
+type EnvReference struct {
+	Name string
+}
+
+func (e EnvReference) IsStatic() bool {
+	return false
+}
+
+func (e EnvReference) GetStaticValue() (any, bool) {
+	return nil, false
+}
+
+func (e EnvReference) GetDynamicExpression() (DynamicValue, bool) {
+	return DynamicValue{}, false
+}
+
+func (e EnvReference) Resolve(state *models.StepInput) (any, error) {
+	value := os.Getenv(e.Name)
+	if value == "" {
+		return nil, fmt.Errorf("environment variable '%s' is not set or is empty", e.Name)
+	}
+
+	return value, nil
 }
