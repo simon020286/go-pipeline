@@ -140,7 +140,7 @@ func TestConvertGoTemplateToJS_MultipleParams(t *testing.T) {
 func TestConvertGoTemplateToJS_StaticParam(t *testing.T) {
 	template := "/api/{{.version}}/users"
 	params := map[string]config.ValueSpec{
-		"version": config.StaticValue{Value: "v1"},
+		"version": config.NewStaticValue("v1"),
 	}
 
 	result, err := convertGoTemplateToJS(template, params)

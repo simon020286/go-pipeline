@@ -1,0 +1,24 @@
+name: "simple-centralized-test"
+description: "Simple test of centralized configuration without authentication"
+
+variables:
+  base_url: "https://jsonplaceholder.typicode.com"
+  post_id: 1
+
+stages:
+  - id: "fetch_post"
+    step_type: "http_client"
+    step_config:
+      url: "$js: $vars.base_url + '/posts/' + $vars.post_id"
+      method: "GET"
+      response: "json"
+    dependencies: []
+
+  - id: "fetch_comments"
+    step_type: "http_client"
+    step_config:
+      url: "$js: $vars.base_url + '/posts/' + $vars.post_id + '/comments'"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "fetch_post"

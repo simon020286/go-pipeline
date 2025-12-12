@@ -57,7 +57,7 @@ func (br *BodyResolver) mergeParams(userParams map[string]config.ValueSpec) (map
 	if br.serviceDef.GlobalParams != nil {
 		for name, paramDef := range br.serviceDef.GlobalParams {
 			if paramDef.Default != nil {
-				merged[name] = config.StaticValue{Value: paramDef.Default}
+				merged[name] = config.NewStaticValue(paramDef.Default)
 			}
 		}
 	}
@@ -66,7 +66,7 @@ func (br *BodyResolver) mergeParams(userParams map[string]config.ValueSpec) (map
 	if br.opDef.Params != nil {
 		for name, paramDef := range br.opDef.Params {
 			if paramDef.Default != nil {
-				merged[name] = config.StaticValue{Value: paramDef.Default}
+				merged[name] = config.NewStaticValue(paramDef.Default)
 			}
 		}
 	}
@@ -104,10 +104,10 @@ func (br *BodyResolver) resolveBodyField(field any, params map[string]config.Val
 		return br.resolveBodyArray(v, params)
 	case string, int, float64, bool, nil:
 		// Valore statico primitivo
-		return config.StaticValue{Value: v}, nil
+		return config.NewStaticValue(v), nil
 	default:
 		// Per altri tipi, trattali come statici
-		return config.StaticValue{Value: v}, nil
+		return config.NewStaticValue(v), nil
 	}
 }
 
@@ -171,7 +171,7 @@ func (br *BodyResolver) resolveBodyMap(m map[string]any, params map[string]confi
 				staticMap[k] = staticVal
 			}
 		}
-		return config.StaticValue{Value: staticMap}, nil
+		return config.NewStaticValue(staticMap), nil
 	}
 
 	// Otherwise, return a structured body with mix of static/dynamic fields
@@ -322,7 +322,7 @@ func (br *BodyResolver) resolveArrayTemplate(arrTmpl map[string]any, params map[
 		for k, v := range params {
 			itemParams[k] = v
 		}
-		itemParams["$item"] = config.StaticValue{Value: item}
+		itemParams["$item"] = config.NewStaticValue(item)
 
 		// Resolve template with item context
 		resolved, err := br.resolveBodyField(template, itemParams)
@@ -349,7 +349,7 @@ func (br *BodyResolver) resolveArrayTemplate(arrTmpl map[string]any, params map[
 				staticArray = append(staticArray, staticVal)
 			}
 		}
-		return config.StaticValue{Value: staticArray}, nil
+		return config.NewStaticValue(staticArray), nil
 	}
 
 	// Otherwise, return a structured body representing array
@@ -387,7 +387,7 @@ func (br *BodyResolver) resolveBodyArray(arr []any, params map[string]config.Val
 				staticArr = append(staticArr, staticVal)
 			}
 		}
-		return config.StaticValue{Value: staticArr}, nil
+		return config.NewStaticValue(staticArr), nil
 	}
 
 	// Otherwise, return a structured body representing the array

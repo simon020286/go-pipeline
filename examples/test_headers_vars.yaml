@@ -1,0 +1,24 @@
+name: "test-headers-variables"
+description: "Test that $var: and $secret: work in HTTP headers"
+
+variables:
+  api_version: "v1"
+  user_agent: "MyApp/1.0"
+
+secrets:
+  api_key: "test_secret_key_12345"
+  auth_token: "Bearer test_token_67890"
+
+stages:
+  - id: "test_static_headers"
+    step_type: "http_client"
+    step_config:
+      url: "https://jsonplaceholder.typicode.com/posts/1"
+      method: "GET"
+      headers:
+        X-API-Version: "$var:api_version"
+        X-API-Key: "$secret:api_key"
+        User-Agent: "$var:user_agent"
+        Authorization: "$secret:auth_token"
+      response: "json"
+    dependencies: []

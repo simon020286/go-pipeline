@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -89,7 +90,7 @@ func init() {
 			delaySpec = vs
 		} else {
 			// Wrappa come StaticValue
-			delaySpec = config.StaticValue{Value: ms}
+			delaySpec = config.NewStaticValue(ms)
 		}
 
 		return &DelayStep{delay: delaySpec}, nil

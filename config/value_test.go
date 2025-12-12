@@ -7,7 +7,7 @@ import (
 )
 
 func TestStaticValue_IsStatic(t *testing.T) {
-	sv := StaticValue{Value: "test"}
+	sv := NewStaticValue("test")
 	if !sv.IsStatic() {
 		t.Error("StaticValue should return true for IsStatic()")
 	}
@@ -15,7 +15,7 @@ func TestStaticValue_IsStatic(t *testing.T) {
 
 func TestStaticValue_GetStaticValue(t *testing.T) {
 	expected := "test value"
-	sv := StaticValue{Value: expected}
+	sv := NewStaticValue(expected)
 
 	val, ok := sv.GetStaticValue()
 	if !ok {
@@ -27,7 +27,7 @@ func TestStaticValue_GetStaticValue(t *testing.T) {
 }
 
 func TestStaticValue_GetDynamicExpression(t *testing.T) {
-	sv := StaticValue{Value: "test"}
+	sv := NewStaticValue("test")
 
 	_, ok := sv.GetDynamicExpression()
 	if ok {
@@ -37,7 +37,7 @@ func TestStaticValue_GetDynamicExpression(t *testing.T) {
 
 func TestStaticValue_Resolve(t *testing.T) {
 	expected := 42
-	sv := StaticValue{Value: expected}
+	sv := NewStaticValue(expected)
 
 	input := &models.StepInput{
 		Data:    make(map[string]map[string]*models.Data),
@@ -247,15 +247,15 @@ func TestHasDynamicValues(t *testing.T) {
 		{
 			name: "all static",
 			values: map[string]ValueSpec{
-				"key1": StaticValue{Value: "val1"},
-				"key2": StaticValue{Value: 42},
+				"key1": NewStaticValue("val1"),
+				"key2": NewStaticValue(42),
 			},
 			expected: false,
 		},
 		{
 			name: "mixed static and dynamic",
 			values: map[string]ValueSpec{
-				"key1": StaticValue{Value: "val1"},
+				"key1": NewStaticValue("val1"),
 				"key2": DynamicValue{Language: "js", Expression: "1+1"},
 			},
 			expected: true,
@@ -287,8 +287,8 @@ func TestHasDynamicValues(t *testing.T) {
 
 func TestExtractStaticValues(t *testing.T) {
 	values := map[string]ValueSpec{
-		"static1": StaticValue{Value: "hello"},
-		"static2": StaticValue{Value: 42},
+		"static1": NewStaticValue("hello"),
+		"static2": NewStaticValue(42),
 		"dynamic": DynamicValue{Language: "js", Expression: "ctx.step1"},
 	}
 

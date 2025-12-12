@@ -1,0 +1,74 @@
+name: "centralized-config-example"
+description: "Demonstrates centralized configuration management with variables, secrets, and environment variables"
+
+# Global variables - reusable configuration values
+variables:
+  base_url: "https://jsonplaceholder.typicode.com"
+  user_id: 1
+  post_id: 1
+  retry_count: 3
+
+# Global secrets - sensitive values (masked in logs)
+# Can use $env: to read from environment variables
+secrets:
+  # Example: api_key: "$env:API_KEY"  # Reads from environment variable
+  api_key: "demo-api-key-12345"       # Or hardcoded (not recommended for production)
+  auth_token: "Bearer demo-token"
+
+stages:
+  # Stage 1: Fetch user using variable reference
+  - id: "fetch_user"
+    step_type: "http_client"
+    step_config:
+      # Use $var: to reference global variables
+      url: "$js: $vars.base_url + '/users/' + $vars.user_id"
+      method: "GET"
+      headers:
+        # Use $secret: to reference global secrets
+        Authorization: "$secret:auth_token"
+      response: "json"
+    dependencies: []
+
+  # Stage 2: Fetch user's posts using both variable and dynamic expression
+  - id: "fetch_posts"
+    step_type: "http_client"
+    step_config:
+      # Combining variables with dynamic data from previous stage
+      url: "$js: $vars.base_url + '/users/' + ctx.fetch_user.id + '/posts'"
+      method: "GET"
+      headers:
+        # Reference secret directly
+        X-API-Key: "$secret:api_key"
+      response: "json"
+    dependencies:
+      - "fetch_user"
+
+  # Stage 3: Fetch a specific post using variable
+  - id: "fetch_post"
+    step_type: "http_client"
+    step_config:
+      # Simple variable reference in JS expression
+      url: "$js: $vars.base_url + '/posts/' + $vars.post_id"
+      method: "GET"
+      response: "json"
+    dependencies:
+      - "fetch_user"
+
+  # Stage 4: Create a comment using all features
+  - id: "create_comment"
+    step_type: "http_client"
+    step_config:
+      url: "$js: $vars.base_url + '/posts/' + $vars.post_id + '/comments'"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "$secret:auth_token"
+        X-API-Key: "$secret:api_key"
+      body:
+        name: "Test Comment"
+        email: "test@example.com"
+        body: "$js: 'Comment from user ' + ctx.fetch_user.name"
+      response: "json"
+    dependencies:
+      - "fetch_post"
+      - "fetch_user"

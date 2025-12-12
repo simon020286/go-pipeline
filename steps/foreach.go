@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -102,7 +103,7 @@ func init() {
 		if vs, ok := list.(config.ValueSpec); ok {
 			listSpec = vs
 		} else {
-			listSpec = config.StaticValue{Value: list}
+			listSpec = config.NewStaticValue(list)
 		}
 
 		return &ForeachStep{

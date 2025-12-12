@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -92,7 +93,7 @@ func init() {
 			if vs, ok := value.(config.ValueSpec); ok {
 				fieldSpec = vs
 			} else {
-				fieldSpec = config.StaticValue{Value: value}
+				fieldSpec = config.NewStaticValue(value)
 			}
 
 			mapStepFields[name] = fieldSpec

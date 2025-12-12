@@ -19,7 +19,7 @@ import (
 type HTTPClientStep struct {
 	urlSpec      config.ValueSpec
 	methodSpec   config.ValueSpec
-	headers      map[string]string
+	headers      map[string]config.ValueSpec
 	bodySpec     config.ValueSpec
 	contentType  string
 	responseType string
@@ -86,9 +86,14 @@ func (s *HTTPClientStep) Run(ctx context.Context, inputs <-chan *models.StepInpu
 				return
 			}
 
-			// Aggiungi headers
-			for key, value := range s.headers {
-				req.Header.Set(key, value)
+			// Risolvi e aggiungi headers
+			for key, valueSpec := range s.headers {
+				headerValue, err := valueSpec.Resolve(input)
+				if err != nil {
+					errorChan <- fmt.Errorf("failed to resolve header '%s': %w", key, err)
+					return
+				}
+				req.Header.Set(key, fmt.Sprintf("%v", headerValue))
 			}
 
 			// Se c'è un body, imposta Content-Type dal campo contentType
@@ -202,12 +207,10 @@ func init() {
 			methodRaw = "GET" // Default to GET if not specified
 		}
 
-		headers, _ := cfg["headers"].(map[string]any)
-		headersMap := make(map[string]string)
+		headers, _ := cfg["headers"].(map[string]config.ValueSpec)
+		headersMap := make(map[string]config.ValueSpec)
 		for k, v := range headers {
-			if strVal, ok := v.(string); ok {
-				headersMap[k] = strVal
-			}
+			headersMap[k] = v
 		}
 
 		responseType, ok := cfg["response"].(string)
@@ -234,7 +237,7 @@ func init() {
 		if vs, ok := methodRaw.(config.ValueSpec); ok {
 			methodSpec = vs
 		} else {
-			methodSpec = config.StaticValue{Value: methodRaw}
+			methodSpec = config.NewStaticValue(methodRaw)
 		}
 
 		var bodySpec config.ValueSpec
@@ -242,7 +245,7 @@ func init() {
 			if vs, ok := bodyRaw.(config.ValueSpec); ok {
 				bodySpec = vs
 			} else {
-				bodySpec = config.StaticValue{Value: bodyRaw}
+				bodySpec = config.NewStaticValue(bodyRaw)
 			}
 		}
 

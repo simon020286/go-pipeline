@@ -31,9 +31,9 @@ func TestHTTPClientStep_SimpleGET(t *testing.T) {
 	defer server.Close()
 
 	step := &HTTPClientStep{
-		urlSpec:      config.StaticValue{Value: server.URL},
-		methodSpec:   config.StaticValue{Value: "GET"},
-		headers:      make(map[string]string),
+		urlSpec:      config.NewStaticValue(server.URL),
+		methodSpec:   config.NewStaticValue("GET"),
+		headers:      make(map[string]config.ValueSpec),
 		responseType: "json",
 	}
 
@@ -100,9 +100,9 @@ func TestHTTPClientStep_POSTWithBody(t *testing.T) {
 	defer server.Close()
 
 	step := &HTTPClientStep{
-		urlSpec:    config.StaticValue{Value: server.URL},
-		methodSpec: config.StaticValue{Value: "POST"},
-		headers:    make(map[string]string),
+		urlSpec:    config.NewStaticValue(server.URL),
+		methodSpec: config.NewStaticValue("POST"),
+		headers:    make(map[string]config.ValueSpec),
 		bodySpec: config.StaticValue{Value: map[string]any{
 			"name": "test",
 		}},
@@ -151,8 +151,8 @@ func TestHTTPClientStep_WithDynamicURL(t *testing.T) {
 			Language:   "js",
 			Expression: "'" + server.URL + "' + '/api/v1'",
 		},
-		methodSpec:   config.StaticValue{Value: "GET"},
-		headers:      make(map[string]string),
+		methodSpec:   config.NewStaticValue("GET"),
+		headers:      make(map[string]config.ValueSpec),
 		responseType: "json",
 	}
 
@@ -184,9 +184,9 @@ func TestHTTPClientStep_ErrorOnNon200(t *testing.T) {
 	defer server.Close()
 
 	step := &HTTPClientStep{
-		urlSpec:      config.StaticValue{Value: server.URL},
-		methodSpec:   config.StaticValue{Value: "GET"},
-		headers:      make(map[string]string),
+		urlSpec:      config.NewStaticValue(server.URL),
+		methodSpec:   config.NewStaticValue("GET"),
+		headers:      make(map[string]config.ValueSpec),
 		responseType: "json",
 	}
 
@@ -223,10 +223,10 @@ func TestHTTPClientStep_WithHeaders(t *testing.T) {
 	defer server.Close()
 
 	step := &HTTPClientStep{
-		urlSpec:    config.StaticValue{Value: server.URL},
-		methodSpec: config.StaticValue{Value: "GET"},
-		headers: map[string]string{
-			"Authorization": "Bearer token123",
+		urlSpec:    config.NewStaticValue(server.URL),
+		methodSpec: config.NewStaticValue("GET"),
+		headers: map[string]config.ValueSpec{
+			"Authorization": config.NewStaticValue("Bearer token123"),
 		},
 		responseType: "json",
 	}
@@ -259,9 +259,9 @@ func TestHTTPClientStep_TextResponse(t *testing.T) {
 	defer server.Close()
 
 	step := &HTTPClientStep{
-		urlSpec:      config.StaticValue{Value: server.URL},
-		methodSpec:   config.StaticValue{Value: "GET"},
-		headers:      make(map[string]string),
+		urlSpec:      config.NewStaticValue(server.URL),
+		methodSpec:   config.NewStaticValue("GET"),
+		headers:      make(map[string]config.ValueSpec),
 		responseType: "text",
 	}
 

@@ -2,9 +2,11 @@ package config
 
 // PipelineConfig represents the complete pipeline configuration from YAML
 type PipelineConfig struct {
-	Name        string        `yaml:"name"`
-	Description string        `yaml:"description"`
-	Stages      []StageConfig `yaml:"stages"`
+	Name        string                 `yaml:"name"`
+	Description string                 `yaml:"description"`
+	Variables   map[string]interface{} `yaml:"variables,omitempty"` // Global reusable variables
+	Secrets     map[string]interface{} `yaml:"secrets,omitempty"`   // Sensitive values (API keys, tokens)
+	Stages      []StageConfig          `yaml:"stages"`
 }
 
 // StageConfig represents the configuration of a stage from YAML

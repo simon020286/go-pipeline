@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -74,7 +75,7 @@ func init() {
 		if vs, ok := data.(config.ValueSpec); ok {
 			dataSpec = vs
 		} else {
-			dataSpec = config.StaticValue{Value: data}
+			dataSpec = config.NewStaticValue(data)
 		}
 
 		return &JsonStep{
