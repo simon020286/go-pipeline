@@ -21,7 +21,7 @@ func ValidateServiceDefinition(def *ServiceDefinition) error {
 }
 
 // validateOperation valida una singola operazione
-func validateOperation(name string, op OperationDef) error {
+func validateOperation(_ string, op OperationDef) error {
 	// Validate that required params don't have defaults
 	for paramName, paramDef := range op.Params {
 		if paramDef.IsRequired() && paramDef.Default != nil {
@@ -149,7 +149,7 @@ func validateConditionDef(cond map[string]any, params map[string]ParameterDef) e
 }
 
 // validateArrayTemplateDef validates an array template structure
-func validateArrayTemplateDef(arrTmpl map[string]any, params map[string]ParameterDef) error {
+func validateArrayTemplateDef(arrTmpl map[string]any, _ map[string]ParameterDef) error {
 	// Check for $for_each
 	if _, ok := arrTmpl["$for_each"].(string); !ok {
 		return fmt.Errorf("array template must have $for_each parameter")

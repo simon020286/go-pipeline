@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/simon020286/go-pipeline/config"
 	"os"
 	"time"
+
+	"github.com/simon020286/go-pipeline/config"
 
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
@@ -72,7 +73,7 @@ func init() {
 		if vs, ok := path.(config.ValueSpec); ok {
 			pathSpec = vs
 		} else {
-			pathSpec = config.StaticValue{Value: path}
+			pathSpec = config.NewStaticValue(path)
 		}
 
 		return &FileStep{path: pathSpec}, nil

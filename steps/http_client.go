@@ -207,15 +207,10 @@ func init() {
 			methodRaw = "GET" // Default to GET if not specified
 		}
 
-		headers, _ := cfg["headers"].(map[string]any)
+		headers, _ := cfg["headers"].(map[string]config.ValueSpec)
 		headersMap := make(map[string]config.ValueSpec)
 		for k, v := range headers {
-			// Convert each header value to ValueSpec
-			if vs, ok := v.(config.ValueSpec); ok {
-				headersMap[k] = vs
-			} else {
-				headersMap[k] = builder.ParseConfigValue(v)
-			}
+			headersMap[k] = v
 		}
 
 		responseType, ok := cfg["response"].(string)
@@ -242,7 +237,7 @@ func init() {
 		if vs, ok := methodRaw.(config.ValueSpec); ok {
 			methodSpec = vs
 		} else {
-			methodSpec = config.StaticValue{Value: methodRaw}
+			methodSpec = config.NewStaticValue(methodRaw)
 		}
 
 		var bodySpec config.ValueSpec
@@ -250,7 +245,7 @@ func init() {
 			if vs, ok := bodyRaw.(config.ValueSpec); ok {
 				bodySpec = vs
 			} else {
-				bodySpec = config.StaticValue{Value: bodyRaw}
+				bodySpec = config.NewStaticValue(bodyRaw)
 			}
 		}
 

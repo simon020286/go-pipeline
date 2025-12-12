@@ -120,7 +120,7 @@ func RegisterDynamicAPIServices(serviceRegistry *ServiceRegistry) error {
 			}
 
 			// Build config.ValueSpec for method
-			methodSpec := config.StaticValue{Value: opDef.Method}
+			methodSpec := config.NewStaticValue(opDef.Method)
 
 			// Render headers (defaults + auth + operation-specific)
 			// TODO: in the future these could also be config.ValueSpec
@@ -214,7 +214,7 @@ func buildURLSpec(serviceDef *config.ServiceDefinition, opDef *config.OperationD
 			url += "?" + strings.Join(queryParts, "&")
 		}
 
-		return config.StaticValue{Value: url}, nil
+		return config.NewStaticValue(url), nil
 	}
 
 	// At least one value is dynamic: build a JavaScript expression
@@ -293,7 +293,7 @@ func renderHeaders(serviceDef *config.ServiceDefinition, opDef *config.Operation
 func buildHeaderValueSpec(tmpl string, context map[string]config.ValueSpec) (config.ValueSpec, error) {
 	// If no template markers, return static value
 	if !strings.Contains(tmpl, "{{") {
-		return config.StaticValue{Value: tmpl}, nil
+		return config.NewStaticValue(tmpl), nil
 	}
 
 	// Check if there are dynamic values in context
@@ -306,7 +306,7 @@ func buildHeaderValueSpec(tmpl string, context map[string]config.ValueSpec) (con
 		if err != nil {
 			return nil, err
 		}
-		return config.StaticValue{Value: rendered}, nil
+		return config.NewStaticValue(rendered), nil
 	}
 
 	// Has dynamic values: convert to JavaScript expression
@@ -350,7 +350,7 @@ func renderAuthHeaders(auth *config.AuthConfig, context map[string]config.ValueS
 			password, _ := passwordSpec.GetStaticValue()
 			credentials := fmt.Sprintf("%s:%s", username, password)
 			encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
-			headers["Authorization"] = config.StaticValue{Value: "Basic " + encoded}
+			headers["Authorization"] = config.NewStaticValue("Basic " + encoded)
 		} else {
 			// At least one is dynamic - create a JS expression
 			// Note: This would require btoa() in JavaScript for base64 encoding
@@ -537,7 +537,7 @@ func ParseConfigValue(v any) config.ValueSpec {
 	}
 
 	// Otherwise it's a static value
-	return config.StaticValue{Value: v}
+	return config.NewStaticValue(v)
 }
 
 // GetRegisteredStepTypes returns all registered step types

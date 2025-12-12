@@ -94,7 +94,7 @@ func TestBodyResolver_MergeParams_UserOverridesAll(t *testing.T) {
 
 	resolver := NewBodyResolver(serviceDef, opDef)
 	userParams := map[string]config.ValueSpec{
-		"page_size": config.StaticValue{Value: 25}, // User value
+		"page_size": config.NewStaticValue(25), // User value
 	}
 
 	merged, err := resolver.mergeParams(userParams)
@@ -120,7 +120,7 @@ func TestBodyResolver_ValidateParams_RequiredPresent(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	params := map[string]config.ValueSpec{
-		"database_id": config.StaticValue{Value: "abc123"},
+		"database_id": config.NewStaticValue("abc123"),
 	}
 
 	err := resolver.validateParams(params)
@@ -191,7 +191,7 @@ func TestBodyResolver_ResolveBodyMap_ParamReference(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	params := map[string]config.ValueSpec{
-		"filter": config.StaticValue{Value: map[string]any{"status": "active"}},
+		"filter": config.NewStaticValue(map[string]any{"status": "active"}),
 	}
 
 	bodyMap := map[string]any{
@@ -251,8 +251,8 @@ func TestBodyResolver_ResolveBodyMap_NestedObject(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	params := map[string]config.ValueSpec{
-		"filter":    config.StaticValue{Value: map[string]any{"status": "active"}},
-		"page_size": config.StaticValue{Value: 50},
+		"filter":    config.NewStaticValue(map[string]any{"status": "active"}),
+		"page_size": config.NewStaticValue(50),
 	}
 
 	bodyMap := map[string]any{
@@ -314,7 +314,7 @@ func TestBodyResolver_ResolveBody_CompleteFlow(t *testing.T) {
 
 	resolver := NewBodyResolver(serviceDef, opDef)
 	userParams := map[string]config.ValueSpec{
-		"filter": config.StaticValue{Value: map[string]any{"status": "done"}},
+		"filter": config.NewStaticValue(map[string]any{"status": "done"}),
 		// sorts not provided (should be omitted)
 		// page_size uses default from global
 	}
@@ -350,7 +350,7 @@ func TestBodyResolver_ResolveBody_CompleteFlow(t *testing.T) {
 func TestStructuredBody_Resolve_Object(t *testing.T) {
 	sb := &StructuredBody{
 		Fields: map[string]config.ValueSpec{
-			"static_field":  config.StaticValue{Value: "hello"},
+			"static_field":  config.NewStaticValue("hello"),
 			"dynamic_field": config.DynamicValue{Expression: "ctx.value", Language: "js"},
 		},
 	}
@@ -386,8 +386,8 @@ func TestStructuredBody_Resolve_Object(t *testing.T) {
 func TestStructuredBody_Resolve_Array(t *testing.T) {
 	sb := &StructuredBody{
 		Array: []config.ValueSpec{
-			config.StaticValue{Value: "item1"},
-			config.StaticValue{Value: "item2"},
+			config.NewStaticValue("item1"),
+			config.NewStaticValue("item2"),
 		},
 	}
 
@@ -440,7 +440,7 @@ func TestBodyResolver_Conditional_ParamExists_True(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"database_id": config.StaticValue{Value: "db-123"},
+		"database_id": config.NewStaticValue("db-123"),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -484,7 +484,7 @@ func TestBodyResolver_Conditional_ParamExists_False(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"page_id": config.StaticValue{Value: "page-456"},
+		"page_id": config.NewStaticValue("page-456"),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -533,8 +533,8 @@ func TestBodyResolver_Conditional_ParamEquals(t *testing.T) {
 	// Test with parent_type = "database"
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"parent_type": config.StaticValue{Value: "database"},
-		"parent_id":   config.StaticValue{Value: "db-123"},
+		"parent_type": config.NewStaticValue("database"),
+		"parent_id":   config.NewStaticValue("db-123"),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -581,8 +581,8 @@ func TestBodyResolver_Conditional_ParamEquals_ElseBranch(t *testing.T) {
 	// Test with parent_type = "page" (else branch)
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"parent_type": config.StaticValue{Value: "page"},
-		"parent_id":   config.StaticValue{Value: "page-456"},
+		"parent_type": config.NewStaticValue("page"),
+		"parent_id":   config.NewStaticValue("page-456"),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -664,7 +664,7 @@ func TestBodyResolver_Conditional_NotEmpty(t *testing.T) {
 	// Test with non-empty tags
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"tags": config.StaticValue{Value: []any{"tag1", "tag2"}},
+		"tags": config.NewStaticValue([]any{"tag1", "tag2"}),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -700,7 +700,7 @@ func TestBodyResolver_ArrayTemplate_ForEach(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"items": config.StaticValue{Value: []any{"a", "b", "c"}},
+		"items": config.NewStaticValue([]any{"a", "b", "c"}),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -746,7 +746,7 @@ func TestBodyResolver_ArrayTemplate_NestedInBody(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"names": config.StaticValue{Value: []any{"Alice", "Bob"}},
+		"names": config.NewStaticValue([]any{"Alice", "Bob"}),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -792,7 +792,7 @@ func TestBodyResolver_ArrayTemplate_EmptyArray(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"items": config.StaticValue{Value: []any{}}, // Empty array
+		"items": config.NewStaticValue([]any{}), // Empty array
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -820,7 +820,7 @@ func TestBodyResolver_ArrayTemplate_WithStaticTemplate(t *testing.T) {
 
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"ids": config.StaticValue{Value: []any{1, 2, 3}},
+		"ids": config.NewStaticValue([]any{1, 2, 3}),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)
@@ -868,8 +868,8 @@ func TestBodyResolver_ConditionalWithArrayTemplate(t *testing.T) {
 	// Test with use_list = true
 	resolver := NewBodyResolver(&config.ServiceDefinition{}, opDef)
 	userParams := map[string]config.ValueSpec{
-		"use_list": config.StaticValue{Value: true},
-		"items":    config.StaticValue{Value: []any{"x", "y"}},
+		"use_list": config.NewStaticValue(true),
+		"items":    config.NewStaticValue([]any{"x", "y"}),
 	}
 
 	bodySpec, err := resolver.ResolveBody(userParams)

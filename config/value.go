@@ -22,6 +22,12 @@ type StaticValue struct {
 	Value any
 }
 
+func NewStaticValue(value any) StaticValue {
+	return StaticValue{
+		Value: value,
+	}
+}
+
 func (s StaticValue) IsStatic() bool {
 	return true
 }
