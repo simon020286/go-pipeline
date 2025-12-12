@@ -402,6 +402,19 @@ func convertGoTemplateToJS(tmplStr string, context map[string]config.ValueSpec) 
 		} else if dynVal, ok := valueSpec.GetDynamicExpression(); ok {
 			// Dynamic value: use JavaScript expression directly
 			parts = append(parts, dynVal.Expression)
+		} else if varRef, ok := valueSpec.(config.VariableReference); ok {
+			// Variable reference: generate $vars.name expression
+			parts = append(parts, fmt.Sprintf("$vars.%s", varRef.Name))
+		} else if secretRef, ok := valueSpec.(config.SecretReference); ok {
+			// Secret reference: generate $secrets.name expression
+			parts = append(parts, fmt.Sprintf("$secrets.%s", secretRef.Name))
+		} else if envRef, ok := valueSpec.(config.EnvReference); ok {
+			// Environment variable reference: these should be resolved at build time
+			// This shouldn't happen in practice since env vars are resolved early,
+			// but handle it gracefully by generating a runtime error
+			return "", fmt.Errorf("environment variable reference '%s' should be resolved before template rendering", envRef.Name)
+		} else {
+			return "", fmt.Errorf("unsupported ValueSpec type for template variable '%s'", varName)
 		}
 
 		// Continue with the rest
@@ -440,6 +453,11 @@ func jsStringLiteral(s string) string {
 // - "$secret:" for global secret references
 // - "$env:" for environment variable references
 func ParseConfigValue(v any) config.ValueSpec {
+	// If it's already a ValueSpec, return it as-is (idempotent)
+	if vs, ok := v.(config.ValueSpec); ok {
+		return vs
+	}
+
 	// If it's a string, check for special prefixes
 	if str, ok := v.(string); ok {
 		// Check for $js: prefix (dynamic JavaScript expression)
