@@ -253,17 +253,17 @@ func buildURLSpec(serviceDef *config.ServiceDefinition, opDef *config.OperationD
 	}, nil
 }
 
-// renderHeaders builds all headers by rendering Go templates
-func renderHeaders(serviceDef *config.ServiceDefinition, opDef *config.OperationDef, context map[string]config.ValueSpec) (map[string]any, error) {
-	headers := make(map[string]any)
+// renderHeaders builds all headers as ValueSpec
+func renderHeaders(serviceDef *config.ServiceDefinition, opDef *config.OperationDef, context map[string]config.ValueSpec) (map[string]config.ValueSpec, error) {
+	headers := make(map[string]config.ValueSpec)
 
 	// Add default headers
 	for k, v := range serviceDef.Defaults.Headers {
-		rendered, err := renderTemplate(v, context)
+		headerSpec, err := buildHeaderValueSpec(v, context)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render default header %s: %w", k, err)
+			return nil, fmt.Errorf("failed to build default header %s: %w", k, err)
 		}
-		headers[k] = rendered
+		headers[k] = headerSpec
 	}
 
 	// Add authentication
@@ -279,40 +279,84 @@ func renderHeaders(serviceDef *config.ServiceDefinition, opDef *config.Operation
 
 	// Add operation-specific headers (can override defaults)
 	for k, v := range opDef.Headers {
-		rendered, err := renderTemplate(v, context)
+		headerSpec, err := buildHeaderValueSpec(v, context)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render operation header %s: %w", k, err)
+			return nil, fmt.Errorf("failed to build operation header %s: %w", k, err)
 		}
-		headers[k] = rendered
+		headers[k] = headerSpec
 	}
 
 	return headers, nil
 }
 
-// renderAuthHeaders builds authentication headers
-func renderAuthHeaders(auth *config.AuthConfig, context map[string]config.ValueSpec) (map[string]string, error) {
-	headers := make(map[string]string)
+// buildHeaderValueSpec converts a header template to a ValueSpec
+func buildHeaderValueSpec(tmpl string, context map[string]config.ValueSpec) (config.ValueSpec, error) {
+	// If no template markers, return static value
+	if !strings.Contains(tmpl, "{{") {
+		return config.StaticValue{Value: tmpl}, nil
+	}
+
+	// Check if there are dynamic values in context
+	hasDynamic := config.HasDynamicValues(context)
+
+	if !hasDynamic {
+		// All static: render with Go template
+		staticContext := config.ExtractStaticValues(context)
+		rendered, err := renderGoTemplate(tmpl, staticContext)
+		if err != nil {
+			return nil, err
+		}
+		return config.StaticValue{Value: rendered}, nil
+	}
+
+	// Has dynamic values: convert to JavaScript expression
+	jsExpr, err := convertGoTemplateToJS(tmpl, context)
+	if err != nil {
+		return nil, err
+	}
+
+	return config.DynamicValue{
+		Language:   "js",
+		Expression: jsExpr,
+	}, nil
+}
+
+// renderAuthHeaders builds authentication headers as ValueSpec
+func renderAuthHeaders(auth *config.AuthConfig, context map[string]config.ValueSpec) (map[string]config.ValueSpec, error) {
+	headers := make(map[string]config.ValueSpec)
 
 	switch auth.Type {
 	case "bearer", "api_key", "custom":
-		value, err := renderTemplate(auth.Value, context)
+		valueSpec, err := buildHeaderValueSpec(auth.Value, context)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render auth value: %w", err)
+			return nil, fmt.Errorf("failed to build auth value: %w", err)
 		}
-		headers[auth.Header] = value
+		headers[auth.Header] = valueSpec
 
 	case "basic":
-		username, err := renderTemplate(auth.Username, context)
+		// For basic auth, build a JavaScript expression that encodes credentials
+		usernameSpec, err := buildHeaderValueSpec(auth.Username, context)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render auth username: %w", err)
+			return nil, fmt.Errorf("failed to build auth username: %w", err)
 		}
-		password, err := renderTemplate(auth.Password, context)
+		passwordSpec, err := buildHeaderValueSpec(auth.Password, context)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render auth password: %w", err)
+			return nil, fmt.Errorf("failed to build auth password: %w", err)
 		}
-		credentials := fmt.Sprintf("%s:%s", username, password)
-		encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
-		headers["Authorization"] = "Basic " + encoded
+
+		// If both are static, encode now
+		if usernameSpec.IsStatic() && passwordSpec.IsStatic() {
+			username, _ := usernameSpec.GetStaticValue()
+			password, _ := passwordSpec.GetStaticValue()
+			credentials := fmt.Sprintf("%s:%s", username, password)
+			encoded := base64.StdEncoding.EncodeToString([]byte(credentials))
+			headers["Authorization"] = config.StaticValue{Value: "Basic " + encoded}
+		} else {
+			// At least one is dynamic - create a JS expression
+			// Note: This would require btoa() in JavaScript for base64 encoding
+			// For now, return an error as this is a complex case
+			return nil, fmt.Errorf("dynamic basic auth is not yet supported - use bearer or api_key auth with $var:/$secret: instead")
+		}
 	}
 
 	return headers, nil

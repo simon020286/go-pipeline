@@ -1,0 +1,19 @@
+name: "test-notion-complete"
+description: "Test complete Notion integration with variables in URL and headers"
+
+variables:
+  notion_db: "test_db_123"
+  page_size: 5
+
+secrets:
+  notion_token: "secret_notion_token_xyz"
+
+stages:
+  - id: "query_database"
+    step_type: "notion"
+    step_config:
+      operation: "query_database"
+      api_token: "$secret:notion_token"
+      database_id: "$var:notion_db"
+      page_size: "$var:page_size"
+    dependencies: []
