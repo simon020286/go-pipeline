@@ -16,6 +16,16 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=http_client category=network description=HTTP client for making API requests
+type HTTPClientConfig struct {
+	URL         string            `step:"required,desc=The URL to call"`
+	Method      string            `step:"default=GET,desc=HTTP method (GET POST PUT DELETE etc)"`
+	Headers     map[string]string `step:"desc=HTTP headers to send with the request"`
+	Body        any               `step:"desc=Request body for POST PUT etc"`
+	ContentType string            `step:"name=content_type,default=application/json,desc=Content-Type header for the request body"`
+	Response    string            `step:"default=json,desc=Expected response type (json or text)"`
+}
+
 type HTTPClientStep struct {
 	urlSpec      config.ValueSpec
 	methodSpec   config.ValueSpec

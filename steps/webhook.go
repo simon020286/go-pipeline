@@ -12,6 +12,13 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=webhook category=trigger description=Receives HTTP events and propagates them in the pipeline
+type WebhookConfig struct {
+	Path       string `step:"default=/webhook,desc=The URL path to listen on"`
+	Method     string `step:"default=POST,desc=HTTP method to accept"`
+	Continuous bool   `step:"default=false,desc=If true acts as entry point; if false waits for input before listening"`
+}
+
 // WebhookStep riceve eventi HTTP e li propaga nella pipeline
 type WebhookStep struct {
 	path       string

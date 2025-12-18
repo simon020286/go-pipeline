@@ -12,6 +12,17 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=map category=data description=Creates an object by mapping named fields to values
+type MapConfig struct {
+	Fields []MapField `step:"required,desc=List of name/value pairs defining the output fields"`
+}
+
+// MapField represents a single field in the map step
+type MapField struct {
+	Name  string `json:"name"`
+	Value any    `json:"value"`
+}
+
 type MapStep struct {
 	fields map[string]config.ValueSpec
 }

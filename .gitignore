@@ -16,3 +16,5 @@ coverage.html
 *.swo
 *~
 .DS_Store
+
+*_gen.go
