@@ -133,8 +133,12 @@ func TestStageBuilder_After(t *testing.T) {
 		t.Errorf("Expected 1 dependency, got %d", len(s2.dependencyRefs))
 	}
 
-	if s2.dependencyRefs[0] != s1 {
-		t.Error("Dependency not set correctly")
+	if s2.dependencyRefs[0].Stage != s1 {
+		t.Error("Dependency stage not set correctly")
+	}
+
+	if s2.dependencyRefs[0].Branch != "" {
+		t.Error("Dependency should have no branch filter")
 	}
 
 	p.mutex.RLock()
@@ -143,6 +147,54 @@ func TestStageBuilder_After(t *testing.T) {
 
 	if len(deps) != 1 || deps[0] != "s2" {
 		t.Error("Dependents graph not updated correctly")
+	}
+}
+
+func TestStageBuilder_AfterWithBranch(t *testing.T) {
+	p := NewPipeline()
+
+	s1 := NewStage("s1", &mockStep{output: "step1"})
+	s2 := NewStage("s2", &mockStep{output: "step2"})
+
+	p.AddStage(s1)
+	err := p.AddStage(s2).AfterWithBranch(s1, "true")
+
+	if err != nil {
+		t.Fatalf("AfterWithBranch failed: %v", err)
+	}
+
+	if len(s2.dependencyRefs) != 1 {
+		t.Errorf("Expected 1 dependency, got %d", len(s2.dependencyRefs))
+	}
+
+	if s2.dependencyRefs[0].Stage != s1 {
+		t.Error("Dependency stage not set correctly")
+	}
+
+	if s2.dependencyRefs[0].Branch != "true" {
+		t.Errorf("Expected branch 'true', got '%s'", s2.dependencyRefs[0].Branch)
+	}
+
+	p.mutex.RLock()
+	deps := p.dependents["s1"]
+	p.mutex.RUnlock()
+
+	if len(deps) != 1 || deps[0] != "s2" {
+		t.Error("Dependents graph not updated correctly")
+	}
+}
+
+func TestStageBuilder_AfterWithBranch_NonexistentDependency(t *testing.T) {
+	p := NewPipeline()
+
+	s1 := NewStage("s1", &mockStep{output: "step1"})
+	s2 := NewStage("s2", &mockStep{output: "step2"})
+
+	// Add s2 but not s1
+	err := p.AddStage(s2).AfterWithBranch(s1, "true")
+
+	if err == nil {
+		t.Error("Expected error for nonexistent dependency")
 	}
 }
 

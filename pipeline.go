@@ -22,12 +22,18 @@ const (
 	ExecutionModeStreaming
 )
 
+// StageDependency represents a dependency with an optional branch filter
+type StageDependency struct {
+	Stage  *Stage // Reference to the dependency stage
+	Branch string // Optional: filter outputs by this key (empty = accept all)
+}
+
 // Stage represents a pipeline node
 // Contains the Step to execute and dependencies (previous stages)
 type Stage struct {
-	ID             string      // Unique identifier of the stage
-	Step           models.Step // The step to execute
-	dependencyRefs []*Stage    // References to dependency stages (instance-based, private)
+	ID             string            // Unique identifier of the stage
+	Step           models.Step       // The step to execute
+	dependencyRefs []StageDependency // References to dependency stages with optional branch filters
 }
 
 // NewStage creates a new stage without dependencies
@@ -36,7 +42,7 @@ func NewStage(id string, step models.Step) *Stage {
 	return &Stage{
 		ID:             id,
 		Step:           step,
-		dependencyRefs: []*Stage{},
+		dependencyRefs: []StageDependency{},
 	}
 }
 
@@ -69,7 +75,7 @@ type StageBuilder struct {
 	stage    *Stage
 }
 
-// After defines the stage dependencies
+// After defines the stage dependencies (without branch filter)
 // Returns error if a dependency doesn't exist in the pipeline
 func (sb *StageBuilder) After(dependencies ...*Stage) error {
 	sb.pipeline.mutex.Lock()
@@ -84,9 +90,36 @@ func (sb *StageBuilder) After(dependencies ...*Stage) error {
 		// Add to dependents graph
 		sb.pipeline.dependents[dep.ID] = append(sb.pipeline.dependents[dep.ID], sb.stage.ID)
 
-		// Add to stage references
-		sb.stage.dependencyRefs = append(sb.stage.dependencyRefs, dep)
+		// Add to stage references (no branch filter)
+		sb.stage.dependencyRefs = append(sb.stage.dependencyRefs, StageDependency{
+			Stage:  dep,
+			Branch: "",
+		})
 	}
+
+	return nil
+}
+
+// AfterWithBranch defines a stage dependency with an optional branch filter
+// The branch filter is used to select only outputs with a specific key (e.g., "true" or "false" from if step)
+// Returns error if a dependency doesn't exist in the pipeline
+func (sb *StageBuilder) AfterWithBranch(dep *Stage, branch string) error {
+	sb.pipeline.mutex.Lock()
+	defer sb.pipeline.mutex.Unlock()
+
+	// Verify the dependency exists in the pipeline
+	if _, exists := sb.pipeline.stages[dep.ID]; !exists {
+		return fmt.Errorf("dependency stage '%s' not found in pipeline", dep.ID)
+	}
+
+	// Add to dependents graph
+	sb.pipeline.dependents[dep.ID] = append(sb.pipeline.dependents[dep.ID], sb.stage.ID)
+
+	// Add to stage references with branch filter
+	sb.stage.dependencyRefs = append(sb.stage.dependencyRefs, StageDependency{
+		Stage:  dep,
+		Branch: branch,
+	})
 
 	return nil
 }
@@ -264,8 +297,8 @@ func (p *Pipeline) Validate() error {
 	// Verifica che tutte le dipendenze esistano
 	for id, stage := range p.stages {
 		for _, dep := range stage.dependencyRefs {
-			if _, exists := p.stages[dep.ID]; !exists {
-				return fmt.Errorf("stage '%s' depends on non-existent stage '%s'", id, dep.ID)
+			if _, exists := p.stages[dep.Stage.ID]; !exists {
+				return fmt.Errorf("stage '%s' depends on non-existent stage '%s'", id, dep.Stage.ID)
 			}
 		}
 	}
@@ -281,11 +314,11 @@ func (p *Pipeline) Validate() error {
 
 		stage := p.stages[id]
 		for _, dep := range stage.dependencyRefs {
-			if !visited[dep.ID] {
-				if hasCycle(dep.ID) {
+			if !visited[dep.Stage.ID] {
+				if hasCycle(dep.Stage.ID) {
 					return true
 				}
-			} else if recStack[dep.ID] {
+			} else if recStack[dep.Stage.ID] {
 				return true
 			}
 		}
@@ -317,7 +350,7 @@ func (p *Pipeline) execute(ctx context.Context) {
 	// Prepara le connessioni
 	for consumerID, consumerStage := range p.stages {
 		for _, dep := range consumerStage.dependencyRefs {
-			key := fmt.Sprintf("%s->%s", dep.ID, consumerID)
+			key := fmt.Sprintf("%s->%s", dep.Stage.ID, consumerID)
 			stageConnections[key] = make(chan models.StepOutput, 10)
 		}
 	}
@@ -430,7 +463,7 @@ func (p *Pipeline) createInputChannelV2(ctx context.Context, stageID string, con
 			// Leggi da TUTTE le dipendenze
 			allClosed := true
 			for _, dep := range stage.dependencyRefs {
-				key := fmt.Sprintf("%s->%s", dep.ID, stageID)
+				key := fmt.Sprintf("%s->%s", dep.Stage.ID, stageID)
 				ch := connections[key]
 
 				select {
@@ -438,8 +471,16 @@ func (p *Pipeline) createInputChannelV2(ctx context.Context, stageID string, con
 					if !ok {
 						continue
 					}
+					// Se c'è un filtro branch, verifica che l'output corrisponda
+					if dep.Branch != "" {
+						// L'output deve contenere una chiave che corrisponde al branch richiesto
+						if _, hasBranch := out.Data[dep.Branch]; !hasBranch {
+							// Questo output non corrisponde al branch richiesto, saltalo
+							continue
+						}
+					}
 					allClosed = false
-					data[dep.ID] = out.Data
+					data[dep.Stage.ID] = out.Data
 					if eventID == "" {
 						eventID = out.EventID
 					}

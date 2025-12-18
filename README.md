@@ -9,6 +9,7 @@ Perfect for data processing workflows, ETL pipelines, microservice orchestration
 - **📋 YAML Configuration** - Define complex pipelines in simple YAML files
 - **🔄 Dual Execution Modes** - Run once (batch) or continuously (streaming with webhooks/cron)
 - **⚡ Smart Execution** - Stages run only when their dependencies are ready, maximizing efficiency
+- **🔀 Conditional Branching** - Create if/else flows with `step_id:true` and `step_id:false` dependency syntax
 - **🔌 Dynamic Services** - Built-in support for APIs with template-based URL construction
 - **📊 Event System** - Monitor pipeline execution in real-time with custom event listeners
 - **🧩 Extensible** - Easy to add custom step types for your specific needs
@@ -322,6 +323,68 @@ step_config:
 - `0 0 * * *` - Every day at midnight
 - `0 9 * * 1` - Every Monday at 9:00 AM
 
+### Conditional Branching (`if`)
+
+Execute different branches based on a boolean condition.
+
+**Configuration:**
+```yaml
+step_type: "if"
+step_config:
+  condition: true  # Static boolean or dynamic expression
+```
+
+**With dynamic condition:**
+```yaml
+step_type: "if"
+step_config:
+  condition: "$js: ctx.previous_step.Body.status === 'active'"
+```
+
+**Output:** The step produces an output with key `"true"` or `"false"` based on the condition result.
+
+**Branch dependencies:** Use the `step_id:branch` syntax in dependencies to create conditional flows:
+
+```yaml
+stages:
+  - id: "check_status"
+    step_type: "if"
+    step_config:
+      condition: "$js: ctx.user.Body.is_premium"
+    dependencies:
+      - "user"
+
+  # Executed ONLY when condition is TRUE
+  - id: "premium_flow"
+    step_type: "js"
+    step_config:
+      code: "return { message: 'Welcome premium user!' };"
+    dependencies:
+      - "check_status:true"  # Note the :true suffix
+
+  # Executed ONLY when condition is FALSE
+  - id: "free_flow"
+    step_type: "js"
+    step_config:
+      code: "return { message: 'Upgrade to premium!' };"
+    dependencies:
+      - "check_status:false"  # Note the :false suffix
+
+  # Executed regardless of condition (receives any output)
+  - id: "always_run"
+    step_type: "delay"
+    step_config:
+      ms: 100
+    dependencies:
+      - "check_status"  # No suffix = accepts any output
+```
+
+**Dependency syntax:**
+- `"step_id"` - Receives all outputs (backward compatible)
+- `"step_id:true"` - Receives output only when condition is true
+- `"step_id:false"` - Receives output only when condition is false
+- `"step_id:custom_branch"` - For custom branch names (extensible)
+
 ### Dynamic Service Steps
 
 Pre-configured API integrations with template support.
@@ -534,6 +597,7 @@ The `examples/` directory contains working examples:
 - `http_client_dynamic_pipeline.yaml` - HTTP client with dynamic values
 - `foreach_pipeline.yaml` - Collection processing
 - `cron_pipeline.yaml` - Scheduled execution
+- `if_pipeline.yaml` - Conditional branching with true/false flows
 - `examples/webhook/main.go` - Webhook handler
 
 Run any example:

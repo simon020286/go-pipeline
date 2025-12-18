@@ -62,21 +62,29 @@ func BuildFromConfig(cfg *config.PipelineConfig) (*Pipeline, error) {
 		}
 
 		stage := stageMap[stageConfig.ID]
+		stageBuilder := &StageBuilder{pipeline: pipeline, stage: stage}
 
 		// Resolve dependency IDs to *Stage references
-		var deps []*Stage
-		for _, depID := range dependencies {
-			depStage, exists := stageMap[depID]
-			if !exists {
-				return nil, fmt.Errorf("stage '%s' depends on non-existent stage '%s'", stageConfig.ID, depID)
-			}
-			deps = append(deps, depStage)
-		}
+		// Support format: "stage_id" or "stage_id:branch" for conditional branching
+		for _, depStr := range dependencies {
+			// Parse the dependency string to extract stage ID and optional branch
+			depRef := config.ParseDependency(depStr)
 
-		// Use the After API to set dependencies
-		builder := &StageBuilder{pipeline: pipeline, stage: stage}
-		if err := builder.After(deps...); err != nil {
-			return nil, err
+			depStage, exists := stageMap[depRef.StageID]
+			if !exists {
+				return nil, fmt.Errorf("stage '%s' depends on non-existent stage '%s'", stageConfig.ID, depRef.StageID)
+			}
+
+			// Use AfterWithBranch if there's a branch filter, otherwise use After
+			if depRef.Branch != "" {
+				if err := stageBuilder.AfterWithBranch(depStage, depRef.Branch); err != nil {
+					return nil, err
+				}
+			} else {
+				if err := stageBuilder.After(depStage); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
