@@ -13,6 +13,11 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=file category=data description=Reads the content of a file from the filesystem
+type FileConfig struct {
+	Path string `step:"required,desc=The path to the file to read"`
+}
+
 type FileStep struct {
 	path config.ValueSpec
 }

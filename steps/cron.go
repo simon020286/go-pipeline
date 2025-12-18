@@ -1,3 +1,5 @@
+//go:generate go run ../codegen/cmd/stepgen .
+
 package steps
 
 import (
@@ -8,6 +10,11 @@ import (
 	"github.com/simon020286/go-pipeline/builder"
 	"github.com/simon020286/go-pipeline/models"
 )
+
+// @step name=cron category=trigger description=Triggers pipeline execution on a schedule
+type CronConfig struct {
+	Schedule string `step:"required,desc=Cron expression or duration (e.g. @every 5m or 1h30m)"`
+}
 
 type CronStep struct {
 	schedule string

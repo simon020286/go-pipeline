@@ -13,6 +13,11 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=json category=data description=Parses a JSON string into a structured object
+type JsonConfig struct {
+	Data string `step:"required,desc=JSON string to parse (supports variable interpolation)"`
+}
+
 type JsonStep struct {
 	data config.ValueSpec
 }

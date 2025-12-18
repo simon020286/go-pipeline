@@ -1,20 +1,11 @@
 name: "if-conditional-pipeline"
-description: "Pipeline di esempio per testare l'IfStep con logica condizionale"
+description: "Pipeline di esempio per testare l'IfStep con logica condizionale e branching"
 stages:
-  # Stage iniziale: cron trigger
-  - id: "trigger"
-    step_type: "cron"
-    step_config:
-      schedule: "@every 5s"
-    dependencies: []
-
   # Stage di delay che simula elaborazione
   - id: "process"
     step_type: "delay"
     step_config:
       ms: 100
-    dependencies:
-      - "trigger"
 
   # Stage if che valuta una condizione
   # La condizione può essere una semplice espressione booleana o
@@ -22,14 +13,33 @@ stages:
   - id: "check"
     step_type: "if"
     step_config:
-      condition: "true"  # Esempio semplice, può essere: ctx.process !== null
+      condition: "$js: 1 === 2"  # Condizione casuale per test
     dependencies:
       - "process"
 
-  # Stage successivo che dipende dal risultato dell'if
-  - id: "final"
+  # Stage eseguito SOLO quando la condizione è TRUE
+  # Usa la sintassi "step_id:branch" per specificare il filtro
+  - id: "on_true"
     step_type: "delay"
     step_config:
       ms: 50
     dependencies:
-      - "check"
+      - "check:true"  # Dipende solo dal ramo "true" dello step check
+
+  # Stage eseguito SOLO quando la condizione è FALSE
+  - id: "on_false"
+    step_type: "delay"
+    step_config:
+      ms: 50
+    dependencies:
+      - "check:false"  # Dipende solo dal ramo "false" dello step check
+
+  # Stage che dipende da ENTRAMBI i rami (viene eseguito sempre)
+  # Se vuoi uno stage che si attiva con qualsiasi output dello step if,
+  # usa semplicemente il nome dello step senza suffisso
+  - id: "always"
+    step_type: "delay"
+    step_config:
+      ms: 25
+    dependencies:
+      - "check"  # Senza suffisso: accetta qualsiasi output (true o false)

@@ -11,6 +11,11 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=js category=scripting description=Executes JavaScript code with access to pipeline context
+type JsConfig struct {
+	Code string `step:"required,desc=JavaScript code to execute (use ctx for step outputs and $vars/$secrets for globals)"`
+}
+
 type JsStep struct {
 	code string
 }

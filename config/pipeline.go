@@ -19,3 +19,37 @@ type StageConfig struct {
 	// Legacy support
 	Inputs []string `yaml:"inputs,omitempty"` // Deprecated: use Dependencies
 }
+
+// DependencyRef represents a parsed dependency reference
+// Format: "stage_id" or "stage_id:branch" where branch filters the output key
+// Examples:
+//   - "process" -> depends on all outputs from "process" stage
+//   - "check:true" -> depends only on outputs where the key is "true"
+//   - "check:false" -> depends only on outputs where the key is "false"
+type DependencyRef struct {
+	StageID string // The ID of the dependency stage
+	Branch  string // Optional: filter outputs by this key (empty = accept all)
+}
+
+// ParseDependency parses a dependency string into a DependencyRef
+// Supports format: "stage_id" or "stage_id:branch"
+func ParseDependency(dep string) DependencyRef {
+	// Find the last colon (to support stage IDs with colons, though not recommended)
+	lastColon := -1
+	for i := len(dep) - 1; i >= 0; i-- {
+		if dep[i] == ':' {
+			lastColon = i
+			break
+		}
+	}
+
+	if lastColon == -1 || lastColon == len(dep)-1 {
+		// No colon or colon at the end: no branch filter
+		return DependencyRef{StageID: dep, Branch: ""}
+	}
+
+	return DependencyRef{
+		StageID: dep[:lastColon],
+		Branch:  dep[lastColon+1:],
+	}
+}

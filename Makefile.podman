@@ -5,7 +5,7 @@
 PODMAN_IMAGE := golang:1.25.3-trixie
 PODMAN_RUN := podman run --rm -v $(PWD):/workspace:z -w /workspace $(PODMAN_IMAGE)
 
-.PHONY: podman-help podman-test podman-build podman-test-verbose podman-test-coverage podman-lint podman-clean
+.PHONY: podman-help podman-test podman-build podman-test-verbose podman-test-coverage podman-lint podman-clean podman-generate podman-fmt
 
 # Default target
 podman-help:
@@ -15,6 +15,7 @@ podman-help:
 	@echo "  podman-test-coverage - Run tests with coverage report in Podman container"
 	@echo "  podman-build         - Build all packages in Podman container"
 	@echo "  podman-lint          - Run golangci-lint in Podman container"
+	@echo "  podman-generate      - Generate step metadata JSON and registry"
 	@echo "  podman-clean         - Clean build artifacts"
 
 # Run all tests
@@ -55,7 +56,12 @@ podman-clean:
 	rm -f examples/webhook/webhook
 	rm -f examples/webhook_oneshot/webhook_oneshot
 
+# Generate step metadata
+podman-generate:
+	@echo "Generating step metadata..."
+	$(PODMAN_RUN) go run ./codegen/cmd/stepgen ./steps
+
 # Run golint
-podman-golint:
+podman-fmt:
 	@echo "Run lint"
-	$(PORDMAN_RUN) go fmt -l ./...
+	$(PODMAN_RUN) go fmt ./...

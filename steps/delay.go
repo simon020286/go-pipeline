@@ -12,6 +12,11 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=delay category=flow description=Pauses pipeline execution for a specified duration
+type DelayConfig struct {
+	Ms int `step:"name=ms,required,desc=Delay duration in milliseconds"`
+}
+
 type DelayStep struct {
 	delay config.ValueSpec
 }

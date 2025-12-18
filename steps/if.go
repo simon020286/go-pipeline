@@ -12,6 +12,11 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=if category=flow description=Conditional branching step that evaluates a boolean condition
+type IfConfig struct {
+	Condition bool `step:"required,desc=Boolean condition to evaluate (use $js: for dynamic expressions)"`
+}
+
 type IfStep struct {
 	condition config.ValueSpec
 }

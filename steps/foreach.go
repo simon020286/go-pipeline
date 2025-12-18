@@ -12,6 +12,11 @@ import (
 	"github.com/simon020286/go-pipeline/models"
 )
 
+// @step name=foreach category=flow description=Iterates over a list and emits each item with its index
+type ForeachConfig struct {
+	List any `step:"required,desc=The list to iterate over"`
+}
+
 type ForeachStep struct {
 	list config.ValueSpec
 }
